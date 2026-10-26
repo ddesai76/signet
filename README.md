@@ -133,4 +133,4 @@ Exit codes: `0` the file ran to the end, `1` an error, `2` a `break`.
 
 ## More
 
-The full manual (types, vectors and complex numbers, routing, conditionals, functions, sequences, loops, and writing modules in every supported language) is `Signet_Programming_Language.docx`; the reference is `SIGNALS.md`.
+The full manual (types, vectors and complex numbers, routing, conditionals, functions, sequences, loops, and writing modules in every supported language) is `Signet_Programming_Language.pdf`.
