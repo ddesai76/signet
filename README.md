@@ -19,7 +19,7 @@ Signet grew out of Starfire, a test-campaign tool, where each test point can run
 | **Parameter** | An external value, `$name`, given on the command line or in a test point's Parameters table. |
 | **Series** | Values against an axis, such as amplitude against frequency, real or complex. It travels as one Signal. |
 | **Sequence** | Signet code that runs test points itself, in order, waiting for conditions between them. |
-| **Starfire** | The test-campaign tool Signet grew out of. Its test points each hold a Signals box; a Signal ticked **live** can be used by other points. |
+| **Starfire** | The test-campaign tool Signet grew out of ([STARFIRE-README.md](STARFIRE-README.md)). Its test points each hold a Signals box; a Signal ticked **live** can be used by other points. |
 | **System** | A set of modules joined by Signals: each module's outputs are wired to other modules' inputs, and Signet runs them and keeps the record. |
 
 ## Getting started
@@ -43,11 +43,12 @@ run(messenger)
 echo(messenger.output.sig)
 ```
 
-`messenger` is the module it runs. Signet looks for `messenger.py`, `messenger.jl`, `messenger.signet`, or any other module file in the folder, so write it in whichever language you like. Each version reads the input and writes it back as the output `output`.
+`messenger` is the module it runs. Signet looks for `messenger.py`, `messenger.jl`, `messenger.signet`, or any other module file in the folder, so write it in whichever language you like. Each version reads the input and writes it back as the output `output`. Its first line declares those ports, so Signet can check the wiring before anything runs (see [Direction safety](#direction-safety)).
 
 `messenger.py`, in Python:
 
 ```python
+# signet: in text::input, out text::output
 from signet import signals
 
 print(signals.input)
@@ -57,6 +58,7 @@ signals.output = signals.input    # written as messenger.output.sig
 `messenger.jl`, in Julia (needs the `JSON3` package):
 
 ```julia
+# signet: in text::input, out text::output
 using Signet: signals
 
 println(signals.input)
@@ -66,6 +68,7 @@ signals.output = signals.input    # written as messenger.output.sig
 `messenger.signet`, in Signet itself. The module's inputs are variables, and `output` writes a Signal:
 
 ```
+# signet: in text::input, out text::output
 echo(input)
 output(output, input)
 ```
@@ -81,7 +84,7 @@ python3 signet.py hello.signet
 → line 4: messenger.output.sig = "Hello, world!"
 ```
 
-The first line is the module's own `print` (in the Signet version it is the module's `echo`, `line 1: input = "Hello, world!"`); the second is `hello.signet`'s `echo`, with the line it is on and what the Signal holds.
+The first line is the module's own `print` (in the Signet version it is the module's `echo`, `line 2: input = "Hello, world!"`); the second is `hello.signet`'s `echo`, with the line it is on and what the Signal holds.
 
 ### Signet on its own
 
@@ -110,6 +113,20 @@ The module wrote only the `value`; Signet added the type, where it came from, wh
 
 The module's input travelled the other way. `connect` wrote it to `messenger.inputs.json` (and a plain-text copy, `messenger.inputs.txt`, for languages without a JSON library), and the helper read it back as `signals.input`.
 
+### Direction safety
+
+Every connection runs in a single direction. Variables passed by a signal have a direction definition based upon case inflections of natural languages: ***elative*** out from a module run as a Signal (`messenger.output.sig`) or ***ablative*** off of an outside source (`$volts`, `sweep.csv`, `'Hello, world!'`), and always ***allative*** towards a module input (`messenger.input`). Signet checks the direction before anything runs, with `--check` and before every run:
+
+```
+connect(messenger.input, report.text)
+```
+
+```
+→ line 1: messenger.input is an input of messenger, not a Signal: read messenger's output as messenger.<output>.sig (messenger writes output)
+```
+
+A module that declares its ports in a `signet:` comment (after `#`, `//`, `--` or `!`, so it works in every language) is also checked for port names and types, and its run is held to the declaration: it must be given every input it declares, and write exactly the outputs it declares. A module without one still runs, and is checked for direction only.
+
 ### Checking without running
 
 `--check` reads the whole file and reports every line it can't understand, without running anything:
@@ -122,12 +139,9 @@ python3 signet.py hello.signet --check
 → hello.signet: ok
 ```
 
-### Two places Signet runs
+### In Starfire
 
-* **On its own,** as above: `python3 signet.py <file>.signet` runs in the current folder, and the modules it starts are files in that folder.
-* **In Starfire,** in the Signals box of a test point. The code runs each time you press run on that point, just before the module starts, and `echo` lines appear at the top of the module's output.
-
-The language is the same in both. Test points exist only in Starfire, and `run(module)` is for the standalone runner.
+The same code runs in the Signals box of a Starfire test point, where test points take the place of the folder: see [STARFIRE-README.md](STARFIRE-README.md).
 
 Exit codes: `0` the file ran to the end, `1` an error, `2` a `break`.
 
@@ -151,4 +165,4 @@ Starfire imports `signet.py` directly and is built on its own; it doesn't use th
 
 ## More
 
-The full manual (types, vectors and complex numbers, routing, conditionals, functions, sequences, loops, and writing modules in every supported language) is `Signet_Language_Spec.docx`.
+The full manual, *The Signet Programming Language*, covers types, vectors and complex numbers, routing, direction safety, conditionals, functions, sequences, loops, writing modules in every supported language, and Signet in Starfire: [Signet_Language_Spec.pdf](Signet_Language_Spec.pdf).
