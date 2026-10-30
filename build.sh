@@ -3,7 +3,7 @@
 # build.sh:       BUILD A SIGNET 26 BINARY WITH NUITKA (LINUX, --standalone)
 # AUTHOR:         DANIEL DESAI
 # UPDATED:        2026-10-25
-# VERSION:        26.b.0.1.1
+# VERSION:        26.b.0.1.3
 #
 # Needs python3, nuitka (pip install nuitka), patchelf, and a C compiler.
 # Output: dist/signet-<version>-linux-<arch>.tar.gz, holding signet/signet and its libraries.
