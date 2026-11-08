@@ -2,8 +2,8 @@
 
 # signet.py:      SIGNET, A COORDINATION LANGUAGE FOR WIRING MODULES IN ANY LANGUAGE VIA SIGNALS
 # AUTHOR:         DANIEL DESAI
-# UPDATED:        2026-10-31
-# VERSION:        26.b.0.1.3
+# UPDATED:        2026-11-06
+# VERSION:        26.b.0.1.4
 #
 
 """
@@ -40,7 +40,7 @@ import dataclasses
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-VERSION = "26.b.0.1.3"
+VERSION = "26.b.0.1.4"
 API = 2                       # the interface Starfire uses; raised when it changes
 
 _PARAM_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -53,11 +53,13 @@ _KEYWORDS = {"let", "where", "connect", "if", "then", "else", "end", "and", "or"
              "break", "multiplex", "demultiplex", "true", "false", "echo", "run",
              "when", "within", "by", "finish", "delay", "escape", "complete", "failed", "broken",
              "running", "column", "autorun", "for", "next", "index", "route", "exit", "merge", "interchange", "output",
-             "function", "subprocess", "return", "in", "xor", "lineage"}
+             "function", "subprocess", "return", "in", "belongs", "befits", "comment", "xor", "lineage", "ex", "ab", "ad",
+             "elseif", "while", "per", "last"}          # elseif, while and per are reserved for a future version
 _MAX_NEST = 32                  # deepest vector of vectors that can be written
 _TYPE_WORDS = {"int", "float", "real", "num", "bool", "text", "complex", "vector", "series", "bus", "hex", "stream", "tuple",
-               "range", "bits"}
-_RESERVED_PORTS = {"write", "series", "stream"}
+               "range", "bits", "fixed", "quaternion", "units"}      # the last three are reserved for a future version
+_RESERVED_PORTS = {"write", "series", "stream", "sta", "lta", "lle", "lla"}
+_AFFIX = {"sta": "ex", "lta": "ab", "lle": "ad"}      # Finnish case endings and the Latin prefixes they stand for
 _SIG_TOKEN = re.compile(r"""
    (?P<ws>\s+)
  | (?P<string>'[^'\n]*'|"[^"\n]*")
@@ -70,7 +72,8 @@ _SIG_TOKEN = re.compile(r"""
  | (?P<imag>(?:\d+(?:\.(?![*/+\-])\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?:im|i)(?![A-Za-z0-9_]))
  | (?P<num>(?:\d+(?:\.(?![*/+\-])\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![A-Za-z0-9_]|\.(?![*/+\-])))
  | (?P<path>[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.[A-Za-z0-9_-]*[A-Za-z][A-Za-z0-9_-]*)
- | (?P<param>\$[A-Za-z_][A-Za-z0-9_]*)
+ | (?P<param>\$[A-Za-z_][A-Za-z0-9_]*(?:\.(?:sta|lta|lle)(?![A-Za-z0-9_]))?)
+ | (?P<bang>!)
  | (?P<name>[A-Za-z_][A-Za-z0-9_]*)
  | (?P<op>\.[*/+\-]|\*\*|\\\\|‾|==|/=|<=|>=|<<|>>|[-+*/()<>=,\[\]:|@{};&~])
 """, re.X)
@@ -155,8 +158,39 @@ def _sig_tokens(text: str, line: int) -> list:
         if not m:
             raise SignalError(line, f"can't read this line (at {text[i:i + 12]!r})")
         i = m.end()
-        if m.lastgroup not in ("ws", "comment"):
-            out.append((m.lastgroup, m.group()))
+        kind, tok = m.lastgroup, m.group()
+        if kind in ("ws", "comment"):
+            continue
+        if kind == "bang":              # name! is name.sig
+            if not out or out[-1][0] not in ("name", "path", "ref") or text[m.start() - 1:m.start()].isspace():
+                raise SignalError(line, "! stands for .sig and goes straight after a Signal's name, as in messenger.output!")
+            k, t = out.pop()
+            out.append(("ref" if k == "ref" else "path", t + ".sig"))
+            continue
+        out.append((kind, tok))
+    return _case_tokens(out, line)
+
+
+def _case_tokens(toks: list, line: int) -> list:
+    """messenger.output.sta.sig, response.lle.input, $volts.lta: a case ending becomes the Latin prefix
+    before the name (ex, ad, ab), so both spellings parse the same."""
+    out = []
+    for kind, tok in toks:
+        if kind in ("path", "ref", "param") and re.search(r"\.(?:sta|lta|lle)(?![A-Za-z0-9_])", tok):
+            head, sep, rest = tok.rpartition(":") if kind == "ref" else ("", "", tok)
+            parts = rest.split(".")
+            found = [p for p in parts[1:] if p in _AFFIX]
+            if len(found) > 1:
+                raise SignalError(line, f"{tok} has more than one case ending")
+            parts.remove(found[0])
+            rest = ".".join(parts)
+            if out and out[-1][0] == "name" and out[-1][1].lower() in ("ex", "ab", "ad"):
+                raise SignalError(line, f"{tok} has a case ending and a prefix: use one")
+            out.append(("name", _AFFIX[found[0]]))
+            tok = head + sep + rest
+            if kind == "path" and "." not in rest:
+                kind = "name"
+        out.append((kind, tok))
     return out
 
 
@@ -241,8 +275,29 @@ class _LineParser:
         kind, text = self.peek()
         return kind == "name" and text.lower() not in _KEYWORDS and text not in _TYPE_WORDS and self.peek(1) == ("op", "(")
 
+    def case_marked(self):
+        """ex <Signal> (elative) or ab <parameter, file or value> (ablative): a check on what the source is; the value is the same."""
+        word = self.take()[1].lower()
+        if word == "ad":
+            raise self.err("ad marks a module input, which only connect and route take")
+        a = self.unary()
+        n = a[2] if a[0] == "typed" else a
+        sig = n[0] == "ref" and n[1].endswith(".sig") or n[0] == "pref" and n[2].endswith(".sig")
+        given = n[0] in ("param", "pparam", "num", "imag", "str", "bool", "bits", "hexraw", "vec", "range", "torange") \
+            or n[0] in ("ref", "pref") and not sig
+        if word == "ex" and not sig:
+            raise self.err("ex marks a Signal (the elative, out of): such as ex messenger.output.sig")
+        if word == "ab" and not given:
+            raise self.err("ab marks a parameter, a file or a value written in the code (the ablative, from)" +
+                           (": a Signal takes ex" if sig else ""))
+        return a
+
     def target(self):
-        """An input to connect or route to: (words, module, port, point)."""
+        """An input to connect or route to: (words, module, port, point). ad before it marks it (the allative, toward)."""
+        if self.kw("ad"):
+            self.take()
+        elif self.kw("ex") or self.kw("ab"):
+            raise self.err(f"{self.peek()[1]} marks a source, which goes first: connect(source, input), or mark both")
         words = self.types()
         kind, text = self.peek()
         if kind == "ref" and re.fullmatch(r"[A-Za-z0-9_-]+:[A-Za-z_][A-Za-z0-9_]*", text):
@@ -300,9 +355,17 @@ class _LineParser:
         elif self.kw("connect"):
             self.take()
             self.expect_op("(")
-            src = self.expr()
-            self.expect_op(",")
-            words, mod, port, point = self.target()
+            if self.kw("ad"):                   # connect(ad input, ex source): both marked, in either order
+                words, mod, port, point = self.target()
+                self.expect_op(",")
+                if not (self.kw("ex") or self.kw("ab")):
+                    raise self.err("arguments out of order: the input is marked ad, so mark the source too "
+                                   "(ex for a Signal, ab for a parameter, file or value), or put the source first")
+                src = self.expr()
+            else:
+                src = self.expr()
+                self.expect_op(",")
+                words, mod, port, point = self.target()
             self.expect_op(")")
             node = ("connect", self.line, src, words, mod, port, point)
         elif self.kw("if"):
@@ -513,9 +576,11 @@ class _LineParser:
 
     def compare(self):
         a = self.bit_or()
-        if self.kw("in"):
-            self.take()
-            a = ("bin", "in", a, self.bit_or())
+        if self.kw("belongs") or self.kw("befits"):
+            op = self.take()[1].lower()
+            a = ("bin", op, a, self.bit_or())
+        elif self.kw("in"):
+            raise self.err("use belongs for a range: x belongs {lo, hi}")
         elif self.peek()[0] == "op" and self.peek()[1] in ("<", "<=", ">", ">=", "==", "/="):
             a = ("bin", self.take()[1], a, self.bit_or())
         return a
@@ -560,18 +625,32 @@ class _LineParser:
         return a
 
     def unary(self):
+        if self.kw("ex") or self.kw("ab") or self.kw("ad"):
+            return self.case_marked()
         if self.peek() == ("op", "-"):
             self.take()
             return ("neg", self.unary())
         if self.peek() == ("op", "~"):
             self.take()
             return ("bnot", self.unary())
-        words = self.types()
+        words, lit, outer = self.types(), None, []
         if words == ["hex"] and self.peek()[0] == "hexval":
             return ("hexraw", self.take()[1])
+        if "bits" in words[1:]:                        # int::bits::4::1010: a cast of a bits value
+            k = words.index("bits")
+            outer, words = words[:k], words[k:]
+        if words[:1] == ["bits"]:
+            nxt = self.peek()
+            if len(words) != 2 or nxt[0] in ("end", "op") and nxt[1] in ("", ")", ",", "]", "}"):
+                raise self.err("write bits as bits::<n>::<value>, such as bits::8::5 or bits::4::1010")
+            if nxt[0] == "num" and re.fullmatch(r"[01]+", nxt[1]) and len(nxt[1]) == int(words[1]):
+                self.take()
+                lit, words = ("bits", nxt[1]), []           # bits::4::1010: the bits themselves
         if words and self.peek()[0] == "type":          # int::hex::FF, bits::12 hex::FF
             return ("typed", words, self.unary())
-        if self.peek() == ("op", "|"):                # |z|: the absolute value
+        if lit:
+            a = lit
+        elif self.peek() == ("op", "|"):                # |z|: the absolute value
             self.take()
             inner = self.sum()
             self.expect_op("|")
@@ -598,11 +677,12 @@ class _LineParser:
         if self.peek() in (("op", "**"), ("op", "\\\\")):     # x**p and x\\n, right to left
             op = self.take()[1]
             a = ("call", "power" if op == "**" else "root", a, self.unary())
-        return ("typed", words, a) if words else a
+        a = ("typed", words, a) if words else a
+        return ("typed", outer, a) if outer else a
 
     def index(self):
         depth, j = 0, self.i
-        while j < len(self.t):         # v[0:3] and v[k:end] read 0:3 and k:end as one token: split them
+        while j < len(self.t):         # v[0:3] and v[k:last] read 0:3 and k:last as one token: split them
             kind, text = self.t[j]
             if (kind, text) in (("op", "["), ("op", "(")):
                 depth += 1
@@ -632,7 +712,7 @@ class _LineParser:
         return lo
 
     def index_end(self):
-        if self.kw("end"):
+        if self.kw("last"):
             self.take()
             off = None
             if self.peek() == ("op", "-"):
@@ -678,10 +758,7 @@ class _LineParser:
             self.take()
             return ("imag", float(text[:-2] if text.endswith("im") else text[:-1]))
         if kind == "bitsval":
-            self.take()
-            if len(text) - 2 > _BITS_MAX:
-                raise self.err(f"bits can be {_BITS_MAX} wide at most, got {len(text) - 2}")
-            return ("bits", text[2:])
+            raise self.err(f"write bits as bits::<n>::<value>: bits::{len(text) - 2}::{text[2:]}")
         if (kind, text) == ("op", "{"):
             self.take()
             lo = self.expr()
@@ -796,8 +873,18 @@ def parse_signals(code: str, inputs=()) -> list:
     ("when", line, cond, within, by, text, body). `inputs` are names already declared (a module's input ports).
     Raises ValueError listing every bad line."""
     errors, flat = [], []
-    in_where = False
+    in_where, cblock = False, 0                      # cblock: the line a comment block opened on
     for n, text in enumerate(str(code or "").splitlines(), 1):
+        word = " ".join(_code_part(text).split()).lower()
+        if cblock:
+            cblock = 0 if word == "end comment" else cblock
+            continue
+        if word in ("comment", "end comment"):
+            if word == "comment":
+                cblock = n
+            else:
+                errors.append(f"line {n}: end comment without a comment before it")
+            continue
         try:
             toks = _sig_tokens(text, n)
             if not toks:
@@ -816,6 +903,8 @@ def parse_signals(code: str, inputs=()) -> list:
         except RecursionError:
             errors.append(f"line {n}: too deeply nested to read")
             in_where = False
+    if cblock:
+        errors.append(f"line {cblock}: comment has no end comment")
     root = []
     stack = [(None, root)]
     inside = {"if": "an if", "when": "a when", "for": "a loop", "function": "a function", "subprocess": "a subprocess"}
@@ -1547,13 +1636,49 @@ def _range_arg(name: str, sv: _SV, line: int):
     return sv.value["lo"], sv.value["hi"]
 
 
+_RANK = {"hex": 0, "int": 1, "float": 2, "real": 2, "complex": 3, "num": 4}
+
+
+def _type_of(sv: _SV) -> str:
+    return (_bits_type(sv.value.width) if isinstance(sv.value, Bits) else sv.type) or infer_type(sv.value) or ""
+
+
+def _fits_in(a: str, b: str) -> bool:
+    """Type a is type b or a subtype of it, read as sets: Z within R within C."""
+    if a == b:
+        return True
+    pa, pb = a.split("::"), b.split("::")
+    if len(pa) == len(pb) == 1 and pa[0] in _RANK and pb[0] in _RANK:
+        return _RANK[pa[0]] <= _RANK[pb[0]]
+    if pa[0] == pb[0] == "bits" and len(pa) == len(pb) == 2:
+        return int(pa[1]) <= int(pb[1])
+    if pa[0] == pb[0] and pa[0] in ("vector", "range", "stream"):
+        return len(pb) == 1 or len(pa) > 1 and _fits_in("::".join(pa[1:]), "::".join(pb[1:]))
+    if pa[0] == pb[0] == "series" and len(pa) == len(pb) == 3:
+        return pa[1] == pb[1] and _fits_in(pa[2], pb[2])
+    return False
+
+
+def _befits(a: _SV, b: _SV) -> bool:
+    """a befits b: b's type can express a, as itself or as one of b's elements."""
+    ta, tb = _type_of(a), _type_of(b)
+    if _fits_in(ta, tb):
+        return True
+    pb = tb.split("::")
+    if pb[0] in ("vector", "range"):
+        return len(pb) == 1 or _fits_in(ta, "::".join(pb[1:]))
+    if pb[0] == "series" and len(pb) == 3:
+        return _fits_in(ta, pb[2])
+    return False
+
+
 def _in_range(a: _SV, r: _SV, line: int) -> _SV:
-    """x in {lo, hi}: true when x is within the range, ends included; a vector or series only if every value is."""
-    lo, hi = _range_arg("in", r, line)
+    """x belongs {lo, hi}: true when x is within the range, ends included; a vector or series only if every value is."""
+    lo, hi = _range_arg("belongs", r, line)
     v = _unhex(a).value
     if isinstance(v, dict) and _series_parts(v):
         if _series_parts(v)[1] != "float":
-            raise SignalError(line, "in needs real values, not complex ones")
+            raise SignalError(line, "belongs needs real values, not complex ones")
         v = v["values"]
     def ok(x):
         if isinstance(x, list):
@@ -1561,10 +1686,10 @@ def _in_range(a: _SV, r: _SV, line: int) -> _SV:
         if isinstance(x, Hex):
             x = int(x)
         if x is not None and not _is_num(x):
-            raise SignalError(line, f"in needs numbers, got {_show_type(a)}")
+            raise SignalError(line, f"belongs needs numbers, got {_show_type(a)}")
         return x is not None and lo <= x <= hi
     if a.file or type(v) is bool or isinstance(v, dict):
-        raise SignalError(line, f"in needs numbers, got {_show_type(a)}")
+        raise SignalError(line, f"belongs needs numbers, got {_show_type(a)}")
     return _SV(ok(v), "bool")
 
 
@@ -1634,10 +1759,11 @@ def _quantize(name, args, line, ctx=None) -> _SV:
     return _each_real(name, args[0], line, f)
 
 
-def _popcount(name, args, line, ctx=None) -> _SV:
+def _hamming(name, args, line, ctx=None) -> _SV:
+    """The Hamming weight: how many bits are 1."""
     v = args[0].value
     if not isinstance(v, Bits):
-        raise SignalError(line, f"popcount needs bits, got {_show_type(args[0])}")
+        raise SignalError(line, f"hamming needs bits, got {_show_type(args[0])}")
     return _SV(bin(v).count("1"), "int")
 
 
@@ -1678,7 +1804,7 @@ def _reduce(name, args, line, ctx=None) -> _SV:
     vals, _ = _vec_values(name, args[0], line)
     if name == "sum":
         return _SV(None, "float") if None in vals else _num_sv(sum(vals, 0))
-    if name == "prod":
+    if name == "product":
         if None in vals:
             return _SV(None, "float")
         r = 1
@@ -1757,6 +1883,21 @@ def _dims(n) -> list:
         out.append(len(n))
         n = n[0] if n else None
     return out[::-1]
+
+
+def _ragged(n):
+    """For an array whose columns (at any depth) differ in length: the two lengths that differ, else None."""
+    if not isinstance(n, list) or not n or not isinstance(n[0], list):
+        return None
+    lens = [len(e) if isinstance(e, list) else None for e in n]
+    if len(set(lens)) > 1:
+        a = lens[0]
+        return a, next(x for x in lens if x != a)
+    for e in n:
+        r = _ragged(e)
+        if r:
+            return r
+    return None
 
 
 def _flat(n) -> list:
@@ -1947,18 +2088,20 @@ def _num2text(name, args, line, ctx=None) -> _SV:
     return _SV(_show_value(x), "text")
 
 
-_MORE = {"text2num": _text2num, "num2text": _num2text, "saturate": _saturate, "excess": _excess, "quantize": _quantize, "popcount": _popcount,
+_DISPATCH = {"text2num": _text2num, "num2text": _num2text, "saturate": _saturate, "excess": _excess, "quantize": _quantize, "hamming": _hamming,
          "min": _extreme, "max": _extreme, "argmin": _extreme, "argmax": _extreme,
-         "sum": _reduce, "prod": _reduce, "mean": _reduce, "std": _reduce, "rms": _reduce, "norm": _reduce,
+         "sum": _reduce, "product": _reduce, "mean": _reduce, "std": _reduce, "rms": _reduce, "norm": _reduce,
          "sort": _sort, "length": _length, "size": _length, "dot": _dot, "cross": _dot, "transpose": _transpose}
 
 _MATH = {"Re": 1, "Im": 1, "abs": 1, "arg": 1, "conj": 1, "power": 2, "root": 2}     # built-in maths, and their argument counts
-_MATH.update({n: (2 if n in ("saturate", "excess", "quantize", "dot", "cross") else 1) for n in _MORE})
+_MATH.update({n: (2 if n in ("saturate", "excess", "quantize", "dot", "cross") else 1) for n in _DISPATCH})
 _NO_STREAMS = "a function can't read streams: sample or freeze the stream first and pass in the value"
-_LISTEN = {"input": ": listen(...) asks for a value"}     # the old name, before a port could be called input
+_FUTURE = ("base", "melt")      # built-ins reserved for a future version
+_LISTEN = {"input": ": listen(...) asks for a value",     # the old name, before a port could be called input
+           **{n: ": reserved for a future version" for n in _FUTURE}}
 _FNARGS = {"map": 1, "warp": 2}      # built-in calls and how many function arguments they start with
 _BUILTINS = ("map", "warp", "unity", "Re", "Im", "im", "listen", "abs", "arg", "conj", "power", "root", "sample", "freeze") \
-    + tuple(_MORE)
+    + tuple(_DISPATCH) + _FUTURE
 
 
 def _fn_name(node) -> str:
@@ -2103,8 +2246,12 @@ def _is_live(e, ctx) -> bool:
 
 def _param_value(text, source) -> _SV:
     t = str(text).strip()
-    if re.fullmatch(r"0[bB][01]{1,64}", t):
-        return _SV(Bits(int(t[2:], 2), len(t) - 2), _bits_type(len(t) - 2), source)
+    m = re.fullmatch(r"bits::(\d+)::(\d+)", t)
+    if m and 1 <= int(m.group(1)) <= _BITS_MAX:
+        n, d = int(m.group(1)), m.group(2)
+        v = int(d, 2) if re.fullmatch(r"[01]+", d) and len(d) == n else int(d)
+        if v < 1 << n:
+            return _SV(Bits(v, n), _bits_type(n), source)
     m = re.fullmatch(r"\{\s*([^,{}]+?)\s*,\s*([^,{}]+?)\s*\}", t)
     if m:
         try:
@@ -2422,8 +2569,8 @@ def _eval(e, line: int, ctx) -> _SV:
         if n > _HEX_MAX:
             raise SignalError(line, f"hex::{raw} is over hex::FFFFFFFF")
         return _SV(Hex(n), "hex")
-    if kind == "call" and e[1] in _MORE:
-        return _MORE[e[1]](e[1], [_eval(a, line, ctx) for a in e[2:]], line, ctx)
+    if kind == "call" and e[1] in _DISPATCH:
+        return _DISPATCH[e[1]](e[1], [_eval(a, line, ctx) for a in e[2:]], line, ctx)
     if kind == "bits":
         return _SV(Bits(int(e[1], 2), len(e[1])), _bits_type(len(e[1])))
     if kind == "range":
@@ -2465,6 +2612,9 @@ def _eval(e, line: int, ctx) -> _SV:
         t = infer_type(vals)
         if items and t in ("vector", ""):
             raise SignalError(line, "a vector's values must all be of one type, got " + ", ".join(sorted({_show_type(i) for i in items})))
+        bad = _ragged(vals)
+        if bad:
+            raise SignalError(line, f"the columns of an array must all be the same length, got {bad[0]} and {bad[1]} values")
         if t.endswith("float") and t.count("::") > 1:
             vals = _floats(vals)
         return _SV(vals, t or "vector", "vector")
@@ -2587,8 +2737,10 @@ def _eval(e, line: int, ctx) -> _SV:
         return _broadcast(op[1], op, a, b, line)
     if op in ("&", "|", "xor", "<<", ">>"):
         return _bits_op(op, a, b, line)
-    if op == "in":
+    if op == "belongs":
         return _in_range(a, b, line)
+    if op == "befits":
+        return _SV(_befits(a, b), "bool")
     if op in ("and", "or"):
         for x in (a, b):
             if type(x.value) is not bool:
@@ -2626,7 +2778,7 @@ def _eval(e, line: int, ctx) -> _SV:
 
 
 def _position(spec, n: int, label: str, line: int, ctx) -> int:
-    """The 0-based place an index names: a number (counted from index(), 0 by default) or end, end-k."""
+    """The 0-based place an index names: a number (counted from index(), 0 by default) or last, last-k."""
     if spec[0] == "end":
         back = 0
         if spec[1] is not None:
@@ -2822,7 +2974,7 @@ def _expr_sources(e, names: dict, seen=()) -> tuple:
     elif kind in ("num", "bool"):
         consts.append(str(e[1]).lower() if kind == "bool" else str(e[1]))
     elif kind == "bits":
-        consts.append("0b" + e[1])
+        consts.append(f"bits::{len(e[1])}::{e[1]}")
     elif kind == "name" and e[1] not in seen:
         for sub in names.get(e[1], []):
             r, c, b = _expr_sources(sub, names, seen + (e[1],))
@@ -2878,7 +3030,7 @@ def _show_value(sv: _SV) -> str:
     if isinstance(sv.value, Hex):
         return f"hex::{sv.value:X}"
     if isinstance(sv.value, Bits):
-        return "0b" + format(int(sv.value), f"0{sv.value.width}b")
+        return f"bits::{sv.value.width}::" + format(int(sv.value), f"0{sv.value.width}b")
     if _is_range(sv.value):
         return "{" + json.dumps(sv.value["lo"]) + ", " + json.dumps(sv.value["hi"]) + "}"
     if sv.type == "complex" and isinstance(sv.value, dict) and not isinstance(sv.value["re"], list):
@@ -3530,9 +3682,25 @@ def _pshow(p):
 
 def connections(code: str, points: bool = False) -> list:
     """Every connect() in the code, without running it: [{line, module, port, types, refs, constants, buses,
-    conditional, point}]. Cross-point connects (module "") only with points=True. Raises ValueError."""
+    conditional, point, stepped}]. Stepped refs reach the connect only from a later line of its loop, so
+    from the pass before. Cross-point connects (module "") only with points=True. Raises ValueError."""
     prog = parse_signals(code)
-    names, out, subs = {}, [], {}
+    names, out, subs, ahead = {}, [], {}, set()
+    def name(n, e):
+        ahead.discard((n, id(e)))
+        if e not in names.setdefault(n, []):
+            names[n].append(e)
+    def collect(nodes):     # A loop's sets reach its earlier connects on the next pass
+        for nd in nodes:
+            if nd[0] in ("let", "set"):
+                n, e = (nd[3], nd[4]) if nd[0] == "let" else (nd[2], nd[3])
+                if e not in names.setdefault(n, []):
+                    names[n].append(e)
+                    ahead.add((n, id(e)))
+            elif nd[0] == "if":
+                collect(nd[3]); collect(nd[4] or [])
+            elif nd[0] == "for":
+                collect(nd[6])
     def walk(nodes, cond):
         for nd in nodes:
             if nd[0] == "subprocess":
@@ -3543,18 +3711,22 @@ def connections(code: str, points: bool = False) -> list:
                     names.setdefault(p, []).append(a)
                 walk(d[6], True)
             elif nd[0] == "let":
-                names.setdefault(nd[3], []).append(nd[4])
+                name(nd[3], nd[4])
             elif nd[0] == "set":
-                names.setdefault(nd[2], []).append(nd[3])
+                name(nd[2], nd[3])
             elif nd[0] == "if":
                 walk(nd[3], True)
                 walk(nd[4] or [], True)
             elif nd[0] in ("when", "for"):
+                if nd[0] == "for":
+                    collect(nd[6])
                 walk(nd[6], True)
             elif nd[0] == "connect" and (nd[4] is not None or points):
                 refs, consts, buses = _expr_sources(nd[2], names)
+                now = _expr_sources(nd[2], {n: [e for e in es if (n, id(e)) not in ahead] for n, es in names.items()})[0]
                 out.append({"line": nd[1], "module": nd[4] or "", "port": nd[5], "types": nd[3], "refs": refs,
-                            "constants": consts, "buses": buses, "conditional": cond, "point": _pshow(nd[6])})
+                            "constants": consts, "buses": buses, "conditional": cond, "point": _pshow(nd[6]),
+                            "stepped": [r for r in refs if r not in now]})
             elif nd[0] == "route" and nd[2] == "exit":
                 refs, consts, buses = _expr_sources(nd[3], names)
                 for words, mod, port, point in nd[4]:
@@ -7524,17 +7696,35 @@ _INTERPRETERS = {".py": "python3", ".sh": "bash", ".jl": "julia"}
 
 # Ports: what a module declares it reads and writes, and the wiring checked against it
 _PORT_LINE = re.compile(r"^[ \t]*(?:#|//|--|!)[ \t]*signet:[ \t]*(.*)$", re.M | re.I)
-_PORT_ITEM = re.compile(r"(in|out)\s+((?:[A-Za-z0-9_]+::)*)([A-Za-z_][A-Za-z0-9_]*)$", re.I)
+_PORT_BLOCK = re.compile(r"^[ \t]*comment[ \t]*$(.*?)^[ \t]*end[ \t]+comment[ \t]*$", re.M | re.S | re.I)
+_PORT_BARE = re.compile(r"^[ \t]*signet:[ \t]*(.*)$", re.M | re.I)
+_PORT_ITEM = re.compile(r"(in|out)\s+((?:[A-Za-z0-9_]+::)*)([A-Za-z_][A-Za-z0-9_]*)(?:\s*=\s*(\S.*?))?$", re.I)
 
 
 def read_ports(text: str):
     """A module's declared ports from its `signet: in float::volts, out float::watts` comment lines
-    (after #, //, -- or !): {"in": {name: words}, "out": {name: words}}, or None if it declares none.
+    (after #, //, -- or !): {"in": {name: words}, "out": {name: words}, "default": {name: input entry}}, or None if
+    it declares none. An input given a value, `in float::c = 0.0`, is optional: unconnected, it gets that value.
     Raises ValueError for a bad declaration."""
     lines = _PORT_LINE.findall(text)
+    for block in _PORT_BLOCK.findall(text):        # in a comment block, signet: lines need no comment mark,
+        decl = None                                 # and one ending in a comma goes on to the next line
+        for ln in block.splitlines():
+            m = _PORT_BARE.match(ln)
+            if decl is not None and decl.rstrip().endswith(","):
+                decl += " " + ln.strip()
+            elif m:
+                if decl is not None:
+                    lines.append(decl)
+                decl = m.group(1)
+            elif decl is not None:
+                lines.append(decl)
+                decl = None
+        if decl is not None:
+            lines.append(decl)
     if not lines:
         return None
-    ports = {"in": {}, "out": {}}
+    ports = {"in": {}, "out": {}, "default": {}}
     for line in lines:
         for item in (s.strip() for s in line.split(",")):
             m = _PORT_ITEM.match(item)
@@ -7546,6 +7736,17 @@ def read_ports(text: str):
             if name in _RESERVED_PORTS:
                 raise ValueError(f"{name} can't be a port name")
             ports[way][name] = words
+            if m.group(4) is not None:
+                if way == "out":
+                    raise ValueError(f"output {name} can't have a default: only an input can")
+                sv = _param_value(m.group(4), f"default of {name}")
+                try:
+                    sv = _typed(words, sv, 0) if words else sv
+                except SignalError as e:
+                    raise ValueError(f"default of {name}: {str(e).split(': ', 1)[-1]}")
+                if words == ["float"] and type(sv.value) is int:
+                    sv = _SV(float(sv.value), "float", sv.source)
+                ports["default"][name] = {"value": sv.value, "type": sv.type or infer_type(sv.value), "source": sv.source}
     return ports
 
 
@@ -7687,13 +7888,21 @@ def check_wiring(code, ports=lambda m: None, is_file=lambda t: False) -> list:
     return sorted(set(errors), key=lambda s: int(s.split()[1].rstrip(":")))
 
 
+def with_defaults(ports, inputs: dict) -> dict:
+    """The inputs for a run, with the default of each optional input left unconnected."""
+    out = dict(inputs or {})
+    for port, entry in (ports or {}).get("default", {}).items():
+        out.setdefault(port, dict(entry))
+    return out
+
+
 def contract_errors(module: str, ports, inputs=None, written=None) -> list:
     """Run-time checks against a module's declared ports: before a run (inputs), after it (written .sig names)."""
     if not ports:
         return []
     errs = []
     if inputs is not None:
-        missing = sorted(set(ports["in"]) - set(inputs))
+        missing = sorted(set(ports["in"]) - set(inputs) - set(ports.get("default", {})))
         extra = sorted(set(inputs) - set(ports["in"]))
         for port, v in sorted(inputs.items()):       # a vector is never a range, nor a range a vector
             want, got = ports["in"].get(port) or [], str(v.get("type") or "").split("::")
@@ -7866,7 +8075,8 @@ class FolderHost:
             ports = self._file_ports(name)
         except ValueError as e:
             raise RuntimeError(str(e))
-        self._contract(module, ports, inputs=inputs or {})
+        inputs = with_defaults(ports, inputs)
+        self._contract(module, ports, inputs=inputs)
         if name.endswith(".signet"):
             return self._run_signet(module, name, inputs, ports)
         argv = [os.path.join(".", name)]
