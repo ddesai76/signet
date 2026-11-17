@@ -1,30 +1,39 @@
 #!/usr/bin/env python3
 
-# visualizer.py:  SIGNET SYSTEM DIAGRAMS AS SVG
+# visualizer.py:  SIGNET SYSTEM DIAGRAMS AS SVG 
 # AUTHOR:         DANIEL DESAI
-# UPDATED:        2026-11-08
-# VERSION:        26.b.0.1.4
+# UPDATED:        2026-11-16
+# VERSION:        26.b.0.1.6
 #
 
 """
 Draws the system a Signet script wires up, the way Starfire's System view does, as one SVG file.
-Standard library only; needs signet.py in the same folder. Run it in the folder the script runs in:
+Standard library only. Uses signet.py from its own folder if there, or else the signet binary
+(in the script's folder or on PATH, with --connections). Run it in the folder the script runs in:
 a line is solid amber where its source .sig exists, faint where it has no data yet.
 
-    python3 visualizer.py <signet code>.signet [-o <diagram>.svg] [--theme light|dark] [--large]
-                                        [--label <module>=<N>:<module> --label <module>=<N>:<module>]
+    python3 visualizer.py cruise.sg [-o cruise.svg] [--theme light|dark] [--large]
+                                        [--label pid=1:pid --label car=2:car]
 
-Modules have inputs on the left and outputs on the right; "= value" is a constant from the script.
+Boxes are modules, inputs on the left and outputs on the right; "= value" is a constant from the script.
 A dashed line carries a value from the pass before (a stepped loop) and runs back under the boxes.
 """
 
 import argparse
+import json
 import os
+import shutil
+import subprocess
 import sys
 from html import escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import signet
+try:
+    import signet
+except ImportError:
+    signet = None                                   # The binary instead, below
+if not hasattr(signet, "connections"):              # The module helper, not signet.py
+    signet = None
 
 BW, BUSW, HEAD, ROW, GAPX, GAPY, PAD = 200, 70, 26, 18, 110, 28, 24
 LANE = 10
@@ -38,10 +47,27 @@ THEMES = {          # Starfire's print and screen colors
 }
 
 
+def connections(path: str) -> list:
+    """The script's connect()s, from signet.py or from the signet binary."""
+    if signet:
+        return signet.connections(open(path, encoding="utf-8").read(), points=True)
+    folder = os.path.dirname(os.path.abspath(path))
+    exe = os.path.join(folder, "signet")
+    exe = exe if os.access(exe, os.X_OK) else shutil.which("signet")
+    if not exe:
+        raise ValueError("needs signet.py beside visualizer.py, or the signet binary")
+    r = subprocess.run([exe, "--connections", path], capture_output=True, text=True)
+    if r.returncode:
+        err = r.stderr.strip().splitlines()[-1] if r.stderr.strip() else f"exit {r.returncode}"
+        if "--connections" in err:
+            err = f"{exe} has no --connections: rebuild it from the current signet.py"
+        raise ValueError(err)
+    return json.loads(r.stdout)
+
+
 def graph(path: str) -> dict:
     """Boxes and lines for the script at path, from its connect()s and the .sig files beside it."""
-    code = open(path, encoding="utf-8").read()
-    conns = signet.connections(code, points=True)
+    conns = connections(path)
     folder = os.path.dirname(os.path.abspath(path))
     boxes, lines = {}, []
 
@@ -57,11 +83,11 @@ def graph(path: str) -> dict:
         lst.append(dict(port=name, **kw))
         return lst[-1]
 
-    def has_data(fname):
+    def has_data(fname):                            # A readable Signal, stream or not
         try:
-            signet.stream_sig(fname) or signet.read_sig(fname)    # A stream still being written counts
-            return True
-        except (ValueError, OSError):
+            with open(fname, encoding="utf-8") as f:
+                return "value" in json.load(f)
+        except (OSError, ValueError):
             return False
 
     def source(ref):
@@ -247,7 +273,7 @@ def svg(g: dict, theme: str = "light", large: bool = False) -> str:
 
 def main():
     ap = argparse.ArgumentParser(description="Draw a Signet script's system as SVG, without Starfire.")
-    ap.add_argument("script", help="a .signet file, run from its own folder")
+    ap.add_argument("script", help="a .sg file, run from its own folder")
     ap.add_argument("-o", "--out", help="SVG file to write (default: the script's name, .svg)")
     ap.add_argument("--theme", choices=THEMES, default="light")
     ap.add_argument("--large", action="store_true", help="bigger text, for print")
