@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-# build.sh:       BUILD A SIGNET 26 BINARY WITH NUITKA (LINUX, --standalone)
+# build.sh:       BUILD A SIGNET 26 BINARY WITH NUITKA (LINUX, --standalone, or --onefile)
 # AUTHOR:         DANIEL DESAI
-# UPDATED:        2026-11-16
-# VERSION:        26.b.0.1.6
+# UPDATED:        2026-11-17
+# VERSION:        26.b.0.1.7
 #
-# Needs python3, nuitka (pip install nuitka), patchelf, and a C compiler.
-# Output: dist/signet-<version>-linux-<arch>.tar.gz, holding signet/signet and its libraries.
+# Needs python3, nuitka (pip install nuitka), patchelf, and a C compiler. Windows: build.ps1.
+# Output: dist/signet-<version>-linux-<arch>.tar.gz, holding signet/signet and its libraries
+# (./build.sh --onefile: signet-<version>-linux-<arch>-onefile.tar.gz, holding signet/signet alone).
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -14,6 +15,8 @@ cd "$(dirname "$0")"
 VERSION=$(head -n1 VERSION | tr -d '[:space:]')
 ARCH=$(uname -m)
 NAME="signet-$VERSION-linux-$ARCH"
+MODE=--standalone
+if [ "${1:-}" = "--onefile" ]; then MODE=--onefile; NAME="$NAME-onefile"; fi
 
 for tool in python3 patchelf; do
     command -v "$tool" >/dev/null || { echo "build.sh: $tool not found" >&2; exit 1; }
@@ -26,11 +29,11 @@ BAKED=$(sed -n 's/^VERSION = "\(.*\)".*/\1/p' signet.py)
 
 rm -rf build "dist/$NAME" "dist/$NAME.tar.gz"
 mkdir -p build dist
-python3 -m nuitka --standalone --assume-yes-for-downloads --remove-output \
+python3 -m nuitka $MODE --assume-yes-for-downloads --remove-output \
     --include-data-files=VERSION=VERSION \
     --output-dir=build --output-filename=signet signet.py
-mkdir -p "dist/$NAME"
-cp -r build/signet.dist "dist/$NAME/signet"
+mkdir -p "dist/$NAME/signet"
+if [ "$MODE" = --onefile ]; then cp build/signet "dist/$NAME/signet/"; else cp -r build/signet.dist/. "dist/$NAME/signet/"; fi
 cp VERSION LICENSE README.md "dist/$NAME/"
 BIN="$PWD/dist/$NAME/signet/signet"
 
