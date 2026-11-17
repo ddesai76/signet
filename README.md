@@ -243,5 +243,3 @@ In Starfire, Signet code goes in each test point's **Signals** box, and a point'
 ## License
 
 MIT. The software is provided "as is", without warranty of any kind. See `LICENSE`.
-
-Developed with AI assistance (Claude, Anthropic); all technical claims and results were reviewed and verified by the author.
