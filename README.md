@@ -1,17 +1,19 @@
 # Signet
 
-**Signet 26** (26.b.0.1.6) is a lightweight coordination language for building systems of programs written in any language. The programs, called **modules**, pass results to one another as **Signals**. Signet is the wiring between them: a typed directed multigraph where modules are nodes and Signals are arrows.
+**Signet 26** (26.b.0.1.7) is a lightweight coordination language for building systems of programs written in any language. The programs, called **modules**, pass results to one another as **Signals**. Signet is the wiring between them: a typed directed multigraph where modules are nodes and Signals are arrows.
 
 Signet was first developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
 
-This repository goes with the book *The Signet Programming Language* (Daniel Desai, 2026). The book is the full guide; this README covers getting started.
+For additional detail, see *The Signet Programming Language* (Daniel Desai, 2026). 
 
 ## Contents
 
 | File | What it is |
 |---|---|
 | `signet.py` | The reference implementation: the evaluator, CLI and embedded module helpers |
-| `build.sh` | Builds the standalone `signet` binary from `signet.py` |
+| `build.sh` | Builds the standalone `signet` binary from `signet.py` on Linux (`--onefile` for a single file) |
+| `build.ps1` | The same on Windows: `signet.exe` (`-OneFile` for a single file) |
+| `.github/workflows/regress.yml` | Runs `signet-tests/regress.py` on Linux and Windows, from source and on both binaries |
 | `signet.rs` | The Rust module helper, as written by `--export-helpers` |
 | `visualizer.py` | Draws a system as SVG, in the style of Starfire's System view |
 | `sys2dot.py` | Turns `--connections` JSON into a Graphviz graph |
@@ -25,7 +27,9 @@ python3 signet.py hello.sg     # from source
 ./signet hello.sg              # standalone binary
 ```
 
-To build the binary, run `./build.sh`.
+To build the binary, run `./build.sh` on Linux, or `powershell -ExecutionPolicy Bypass -File build.ps1` on Windows (needs `python -m pip install nuitka`).
+
+On Windows, run `python signet.py hello.sg` or `signet.exe hello.sg`. Compiled modules need the compilers on `PATH`: MSYS2's UCRT64 toolchain (`gcc`, `g++`, `gfortran`, `gnatmake`), Rust, and GHC; shell modules need Git Bash. Windows support is new in 26.b.0.1.7 and so far checked only by the CI workflow.
 
 ## Hello, Signal
 
@@ -113,13 +117,35 @@ run(plot)
 lineage(plot.figure!)                 # Print the chain that made a Signal
 ```
 
-**Types:** `int`, `float`, `real`, `num`, `bool`, `hex`, `bits::<n>`, `text`, `complex`, `vector::<type>`, `tuple`, `range`, `series::<domain>::<float|complex>`, `stream::<domain>::<float|complex>`, `bus`, or a file extension such as `csv`.
+**Types:** `int`, `float`, `real`, `num`, `bool`, `hex`, `bits::<n>`, `text`, `complex`, `quaternion`, `hypercomplex`, `vector::<type>`, `tuple`, `range`, `series::<domain>::<float|complex|quaternion>`, `stream::<domain>::<float|complex>`, `bus`, or a file extension such as `csv`.
 
 **Routing:** `route(v, exit, [a, b])` fans a value out to several inputs, and `route(s, merge, [t, u])` appends Signals. Optional case markers state a value's role: `ex` (`.sta`), `ab` (`.lta`) and `ad` (`.lle`).
 
 **Waiting:** `when c within s by s … end when` waits for a condition, with deadlines. Streams (timestamped samples that arrive while their source is running) are read with `sample(s)`, `$sample(s)`, `@sample(s)` and `freeze(s)`.
 
-Appendix A of the book has the full quick reference: 120 reserved words, the operators in order of precedence, and the built-in functions.
+Appendix A of the book has the full quick reference: 120 reserved words, the operators in order of precedence, and the built-in functions. The additions since the book follow.
+
+### Quick reference: new in 26.b.0.1.7
+
+| Syntax | Definition |
+|---|---|
+| `if c then … elseif d then … else … end if` | Further conditions, tested in turn; one `end if` closes the chain. `then` is optional. |
+| `base(value, from, to)` | An integer's digits read in base `from` and written in base `to` (2 to 36): `base(255, 10, 16)` is `"FF"`, `base('FF', 16, 10)` is `255`. Base 10 gives an `int`, any other base `text`. A hex or bits value gives its own digits. |
+| `(w, x, y, z)` | A quaternion, w + xi + yj + zk: `let quaternion::q = (1, 0, 0, 0)` |
+| `quaternion` | A quaternion; also `vector::quaternion` and `series::<domain>::quaternion` |
+| `hypercomplex` | A real, complex or quaternion number |
+| `+ - * /` on quaternions | Hamilton's product (`i * j` is `k`); a real or complex number promotes. `p / q` is `p` times the inverse of `q`. Only `==` and `/=` compare. |
+| `abs(q)`, `\|q\|`, `conj(q)`, `q‾`, `arg(q)` | Norm, conjugate, and the angle from the real axis (0 to π) |
+| `q ** n`, `power(q, n)`, `root(q, n)` | A real power or root (principal value) |
+| `Re(q)`, `Im(q)` | The real part `w`, and the vector part `[x, y, z]` |
+| `versor(q)` | `q` over its norm |
+| `ang2quat(Z, Y, X)` | The unit quaternion of a rotation by Z, then Y, then X (yaw, pitch, roll), in radians |
+| `quat2ang(q)` | `[Z, Y, X]` back, in radians; at a pitch of ±π/2 the roll is 0 and Z takes the rest |
+| `sum`, `product`, `mean`, `norm`, `length` | Also work on a `vector::quaternion` (`product` multiplies in order) |
+
+`num` is still a real or complex number, so existing `num` ports are unchanged. `quaternion::` doesn't turn a real into a quaternion (as `complex::` doesn't); arithmetic does. Streams of quaternions are planned for a later version.
+
+Built-in words added: `versor`, `quat2ang`, `ang2quat` (built-in functions, so not variable names) and `hypercomplex` (a type). `elseif` and `base` now do what they were reserved for.
 
 ## Modules
 
@@ -143,12 +169,28 @@ signals.watts = signals.volts * signals.amps   # Writes multiply.watts.sig
 | Rust | `.rs` | Compiled by Signet with `rustc` (no Cargo) |
 | Ada | `.adb` | Compiled by Signet with `gnatmake` |
 | Fortran | `.f90` | Compiled by Signet with `gfortran` |
+| Haskell | `.hs` | Compiled by Signet with `ghc` (`import Signet`) |
 
 Signet compiles a module the first time it runs, and again only when its source or Signet changes. On Debian or Ubuntu, install the compilers with:
 
 ```sh
-sudo apt install gcc g++ gnat gfortran rustc
+sudo apt install gcc g++ gnat gfortran rustc ghc
 ```
+
+A Haskell module, `multiply.hs`:
+
+```haskell
+-- signet: in float::volts, in float::amps, out float::watts
+import Signet
+
+main :: IO ()
+main = do
+  v <- getFloat "volts"
+  i <- getFloat "amps"
+  put "watts" (v * i) ""
+```
+
+Quaternion ports work in every helper: `Quaternion` in Python, Quaternions.jl's `Quaternion` in Julia (loaded only when a quaternion is used, so other Julia modules still need only JSON3), `signet::Quaternion` in C++, `signet_quaternion` in C, `signet::Quaternion` in Rust, `Signet.Quaternion` in Ada, `type(signet_quaternion)` in Fortran, `SIGNETQUAT` in ALGOL 68 and `Quaternion` in Haskell. A quaternion input reads a real or complex number as a quaternion too, which is how a `hypercomplex` port is read in a compiled language.
 
 ### Helpers
 
@@ -164,6 +206,7 @@ The helper files are embedded in Signet. To write them out, run:
 | C | `signet.h` | `#include <signet.h>` |
 | C++ | `signet.hpp` | `#include <signet.hpp>` |
 | Fortran | `signet.f90` | `use signet` |
+| Haskell | `Signet.hs` | `import Signet` |
 | Rust | `signet.rs` | `use signet::get_f64;` |
 
 The helpers only change when Signet does, so export them again after updating. To compile a module yourself and check it for errors before wiring it in:
@@ -182,6 +225,9 @@ gfortran -O2 -I include module.f90 include/signet.o -o module
 
 # Ada
 mkdir -p obj && gnatmake -q -O2 -gnat2012 -Iinclude -D obj module.adb -o module
+
+# Haskell
+ghc -O1 -iinclude -outputdir obj module.hs -o module
 ```
 
 Streams default to a window of 1024 samples. For example, in Python:
@@ -243,3 +289,4 @@ In Starfire, Signet code goes in each test point's **Signals** box, and a point'
 ## License
 
 MIT. The software is provided "as is", without warranty of any kind. See `LICENSE`.
+
