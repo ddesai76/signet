@@ -4,7 +4,7 @@
 
 Signet was first developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
 
-For additional detail, see *The Signet Programming Language* (Daniel Desai, 2026). 
+This repository goes with the book *The Signet Programming Language* (Daniel Desai, 2026). The book is the full guide; this README covers getting started.
 
 ## Contents
 
@@ -13,14 +13,26 @@ For additional detail, see *The Signet Programming Language* (Daniel Desai, 2026
 | `signet.py` | The reference implementation: the evaluator, CLI and embedded module helpers |
 | `build.sh` | Builds the standalone `signet` binary from `signet.py` on Linux (`--onefile` for a single file) |
 | `build.ps1` | The same on Windows: `signet.exe` (`-OneFile` for a single file) |
-| `.github/workflows/regress.yml` | Runs `signet-tests/regress.py` on Linux and Windows, from source and on both binaries |
+| `pyproject.toml` | The PyPI package, `signet-lang` |
+| `.github/workflows/regress.yml` | Runs `signet-tests/regress.py` on Linux and Windows, from source, the pipx install and both binaries |
+| `.github/workflows/release.yml` | Publishes a tagged release to PyPI once the regression passes |
 | `signet.rs` | The Rust module helper, as written by `--export-helpers` |
 | `visualizer.py` | Draws a system as SVG, in the style of Starfire's System view |
 | `sys2dot.py` | Turns `--connections` JSON into a Graphviz graph |
 
 ## Install
 
-`signet.py` needs only Python 3 and its standard library. Put `signet.py`, or the `signet` binary, in the working folder:
+From PyPI, as `signet-lang` (the command is `signet`). pipx keeps it in its own environment:
+
+```sh
+pipx install signet-lang
+signet hello.sg
+pipx upgrade signet-lang       # a newer release
+```
+
+On Linux, `#!/usr/bin/env signet` as a program's first line lets `chmod +x hello.sg && ./hello.sg` run it.
+
+`signet.py` needs only Python 3.8 or later and its standard library, so it also runs without installing. Put `signet.py`, or the `signet` binary, in the working folder:
 
 ```sh
 python3 signet.py hello.sg     # from source
@@ -290,3 +302,4 @@ In Starfire, Signet code goes in each test point's **Signals** box, and a point'
 
 MIT. The software is provided "as is", without warranty of any kind. See `LICENSE`.
 
+Developed with AI assistance (Claude, Anthropic); all technical claims and results were reviewed and verified by the author.

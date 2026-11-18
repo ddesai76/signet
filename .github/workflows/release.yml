@@ -1,0 +1,51 @@
+# release.yml:    PUBLISH SIGNET TO PYPI (signet-lang) FROM A TAG, ONCE THE REGRESSION PASSES
+# AUTHOR:         DANIEL DESAI
+# UPDATED:        2026-11-17
+# VERSION:        26.b.0.1.7
+#
+# Release: bump VERSION, signet.py and pyproject.toml together, then `git tag v<VERSION> && git push --tags`.
+# One-time setup on pypi.org: add this repo as a trusted publisher for signet-lang (workflow release.yml,
+# environment pypi), and create the pypi environment in the repo's settings. No token is stored.
+
+name: release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  regress:
+    uses: ./.github/workflows/regress.yml
+
+  build:
+    needs: regress
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The tag is the version
+        run: |
+          [ "${GITHUB_REF_NAME}" = "v$(cat VERSION)" ] || { echo "tag ${GITHUB_REF_NAME} is not v$(cat VERSION)"; exit 1; }
+      - name: Build and check
+        run: |
+          python3 -m pip install build twine
+          python3 -m build
+          python3 -m twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pypi
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

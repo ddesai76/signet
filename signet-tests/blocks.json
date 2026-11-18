@@ -1,0 +1,776 @@
+[
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "code",
+  "text": "echo('Hello, world!')"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "code",
+  "text": "python3 signet.py hello.sg  # OR\n./signet hello.sg"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: 'Hello, world!' = \"Hello, world!\""
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": "hello.sg",
+  "kind": "code",
+  "text": "# signet: out text::message\nlet hello = 'Hello, world!'\noutput(text::message, hello)"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": "world.cpp",
+  "kind": "code",
+  "text": "// signet: in text::input\n#include <signet.hpp>\n#include <iostream>\nint main() {\n    auto m = signet::in<std::string>(\"input\");\n    std::cout << m << '\\n';\n    return 0;\n}"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": "messenger.sg",
+  "kind": "code",
+  "text": "run(hello)\nconnect(hello.message!, world.input)\nrun(world)"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": "Terminal",
+  "kind": "code",
+  "text": "./signet messenger.sg"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "output",
+  "text": "→ Hello, world!"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "code",
+  "text": "{\"value\": ‘Hello, world!’, \"type\": \"text\", \"origin\": \"hello.hello\",\n \"generated\": \"2026-10-23T17:08:22Z\", \"hash\": \"5daa9ee1…\"}"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "code",
+  "text": "let v = listen(float::, \"Supply voltage?\")"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "output",
+  "text": "→ Supply voltage? [float] 12\n→ line 2: v * 2 = 24"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "code",
+  "text": "./signet hello.sg --check"
+ },
+ {
+  "chapter": "Hello, Signal",
+  "label": null,
+  "kind": "output",
+  "text": "→ hello.sg: ok"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "code",
+  "text": "let mass = $mass                 # A parameter\nwhere gravity = 9.81             # A constant\nlet weight = mass * gravity      # A variable\necho(mass, gravity, weight)\nweight = weight + 1              # Variables are mutable\necho(weight)"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 4: mass, gravity, weight = 2, 9.81, 19.62\n→ line 7: weight = 20.62"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "code",
+  "text": "echo($mode, $flag, $list)"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 8: $mode, $flag, $list = \"fast\", true, [1, 2, 3]"
+ },
+ {
+  "chapter": "Values",
+  "label": "source.sg",
+  "kind": "code",
+  "text": "# signet: out float::k1\nwhere quantity = 123.4\noutput(float::k1, quantity)"
+ },
+ {
+  "chapter": "Values",
+  "label": "display.cpp",
+  "kind": "code",
+  "text": "// signet: in float::input\n#include <signet.hpp>\n#include <iostream>\nint main() {\n\tstd::cout << signet::in<double>(\"input\") << '\\n';\n\treturn 0;\n}"
+ },
+ {
+  "chapter": "Values",
+  "label": "multiply.py",
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts\nfrom signet import signals\nvolts = signals.volts          # Read two inputs\namps = signals.amps\nsignals.watts = volts * amps  # Write one output: multiply.watts.sig"
+ },
+ {
+  "chapter": "Values",
+  "label": "wiring.sg",
+  "kind": "code",
+  "text": "# watts from volts and amps\nconnect($volts, multiply.volts)\nconnect($amps, multiply.amps)\nrun(multiply)\nconnect(multiply.watts!, display.input)\nrun(display)"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "code",
+  "text": "./signet wiring.sg --param volts=12 --param amps=0.3"
+ },
+ {
+  "chapter": "Values",
+  "label": null,
+  "kind": "output",
+  "text": "→ 3.6"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "echo(float::$v, int::3, bool::$flag)"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: float::$v, int::3, bool::$flag = 5, 3, true"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "let flags = bits::8::10110110\necho(hex::flags, int::flags)"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: hex::flags, int::flags = hex::B6, 182"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "let z = 1 + 2i\nlet w = [1 + 2i, 3 - 1i]\necho(z, w)"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 3: z, w = 1.0 + 2.0i, [1.0 + 2.0i, 3.0 - 1.0i]"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "let test_points = [10, 20, 30]\necho(test_points[0], test_points[last])     # 10 and 30"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "let A = [[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]]\necho(size(A), A[2, 0, 1], A[:, 1, 1])"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: size(A), A[2, 0, 1], A[:, 1, 1] = [3, 2, 2], 9, [10, 11, 12]"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "let range::float::limits = {11.5, 12.5}\necho(limits, limits[0], limits[1])\necho(12.2 belongs limits)"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: limits, limits[0], limits[1] = {11.5, 12.5}, 11.5, 12.5\n→ line 3: 12.2 belongs limits = true"
+ },
+ {
+  "chapter": "Types",
+  "label": "sine.jl",
+  "kind": "code",
+  "text": "# signet: out wave\nusing Signet\nn = 100                                   \ndt = 1 / n                             \nk = 0:n-1\nsignals.wave = series(sinpi.(2 .* k ./ n); domain=\"time\", start=0.0, step=dt)"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "code",
+  "text": "echo(2 befits 3, 2 befits 3.5, 2.5 befits 3)\necho(2.5 befits 1 + 2i, 'Hello' befits ['Hello', 'world'])"
+ },
+ {
+  "chapter": "Types",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: 2 befits 3, 2 befits 3.5, 2.5 befits 3 = true, true, false\n→ line 2: 2.5 befits 1 + 2i, 'Hello' befits ['Hello', 'world'] = true, true"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "echo(1 + 2 + 3)\necho(7.0 / 2)\necho(1e-3 * 1000)\necho(3 > 2)"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: 1 + 2 + 3 = 6\n→ line 2: 7.0 / 2 = 3.5\n→ line 3: 1e-3 * 1000 = 1.0\n→ line 4: 3 > 2 = true"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "let z = 1 + 2i\necho(z, Re(z), Im(z))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: z, Re(z), Im(z) = 1.0 + 2.0i, 1.0, 2.0"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "let z = 3 + 4i\necho(|z|, >z<, z‾)"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: |z|, >z<, z‾ = 5.0, 0.9272952180016122, 3.0 - 4.0i\n"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "where PI = 3.14159\necho(sin(PI/4))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: sin(PI/4) = 0.7071063120935576"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "echo([1, 2, 3] .* [10, 20, 30])\necho([1, 2] .* [3, 4], [1, 2, 3] .- 1)"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: [1, 2, 3] .* [10, 20, 30] = [10, 40, 90]\n→ line 2: [1, 2] .* [3, 4], [1, 2, 3] .- 1 = [3, 8], [0, 1, 2]"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "let v = [3.0, 1.5, 4.0, 1.5]\necho(min(v), max(v), argmin(v), argmax(v))\necho(sum(v), product(v), mean(v), std(v))\necho(rms(v), sort(v), length(v))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: min(v), max(v), argmin(v), argmax(v) = 1.5, 4.0, 1, 2\n→ line 3: sum(v), product(v), mean(v), std(v) = 10.0, 27.0, 2.5, 1.224744871391589\n→ line 4: rms(v), sort(v), length(v) = 2.715695122800054, [1.5, 1.5, 3.0, 4.0], 4"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "echo(dot([1, 2, 3], [4, 5, 6]))\necho(cross([1, 0, 0], [0, 1, 0]))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: dot([1, 2, 3], [4, 5, 6]) = 32\n→ line 2: cross([1, 0, 0], [0, 1, 0]) = [0, 0, 1]"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "code",
+  "text": "let A = [1, 2; 3, 4]\nlet B = [0, 1; 1, 0]\necho(A * B, A * [1, 1], transpose([1, 1]) * A)"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 3: A * B, A * [1, 1], transpose([1, 1]) * A = [2, 1; 4, 3], [3, 7], [4, 6;]"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": "gradient.py",
+  "kind": "code",
+  "text": "# signet: in y, out dy\nimport numpy as np\nfrom signet import signals, Series, Stream\ny = signals.y\nif isinstance(y, Stream):            # Backward differences\n    dy, prev = signals.stream(\"dy\"), None\n    for t, v in y:\n        if prev is not None:\n            dy.write(t, (v - prev[1]) / (t - prev[0]))\n        prev = (t, v)\nelif isinstance(y, Series):          # Central differences\n    x = np.array(y.x)\n    dy = np.gradient(np.array(y.values), x)\n    signals.dy = signals.series(dy, domain=y.domain, x=x)\nelse:                                # A vector, unit step\n    signals.dy = np.gradient(np.array(y))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": "integrate.py",
+  "kind": "code",
+  "text": "# signet: in y, in num::c = 0.0, out running, out num::total\nimport numpy as np # NumPy 2 for np.trapezoid (np.trapz in NumPy 1.x).\nfrom signet import signals, Series, Stream\ny, c = signals.y, signals.c\nif isinstance(y, Stream):            # One trapezoid per sample\n running, prev, total = signals.stream(\"running\"), None, c\n for t, v in y:\n if prev is not None:\n total += (t - prev[0]) * (v + prev[1]) / 2\n running.write(t, total + 0 * v)  # Same kind as y\n prev = (t, v)\nelif isinstance(y, Series):          # Running trapezoids\n x, v = np.array(y.x), np.array(y.values)\n steps = np.diff(x) * (v[1:] + v[:-1]) / 2\n running = c + np.concatenate(([0.0], np.cumsum(steps)))\n signals.running = signals.series(running, domain=y.domain, x=x)\n total = c + np.trapezoid(v, x)\nelse:                                # A vector, unit step\n v = np.array(y)\n steps = (v[1:] + v[:-1]) / 2\n running = c + np.concatenate(([0.0], np.cumsum(steps)))\n signals.running, total = running, c + np.trapezoid(v)\nsignals.total = total"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": "signet",
+  "kind": "code",
+  "text": "run(car)\nconnect(car.speed!, gradient.y)\nrun(gradient)\nlet accel = gradient.dy!\necho(max(accel))"
+ },
+ {
+  "chapter": "Mathematical Expressions",
+  "label": "signet",
+  "kind": "code",
+  "text": "run(engine)\nconnect(engine.watts!, integrate.y)\nrun(integrate)\nwhen complete(integrate) within 60\nend when\nlet joules = integrate.total!\necho(joules)"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "for k = 0:2                    \n# 0, 1, 2; or start:step:stop\n    run(test_points[k])\nnext k"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "if z > 0 then\n    print(x);\nelse\n    print(y)\nfi"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "if z > 0 then\n echo(x)\nelse\n echo(y)\nend if"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "if fuel! > 20.0 and temperature! < 40.0 then\n    connect(switch!, motor.on_switch)\nelse\n    break\nend if"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "function ms2mph(x)\n    return x * 2.23694\nend function\nms2mph(x) = x * 2.23694          # Short form of the same thing\nlet speed_mph = ms2mph(30)     \necho(speed_mph)"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 8: ms2mph(30) = 67.1081"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "code",
+  "text": "double(x) = x * 2\nlet amps = [1, 2, 3]\necho(map(double, amps))"
+ },
+ {
+  "chapter": "Loops, Conditionals, & Subroutines",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 3: map(double, amps) = [2, 4, 6]"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "let before = TC-001-10:get_modes.frequency!\nlet after  = TC-001-40:get_modes.frequency!\nconnect(before, analyze.before_in)\nconnect(after,  analyze.after_in)"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "let dash = multiplex(watts!, ok!)\necho(dash)\necho(demultiplex(dash.watts!))"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 2: dash = {\"watts.sig\": {\"value\": 6.0, \"type\": \"float\"}, \"ok.sig\": {\"value\": true, \"type\": \"bool\"}}\n→ line 3: demultiplex(dash.watts!) = 6.0"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "route(10:voltage!, exit, [20:voltage_in, 30:voltage_in, 40:voltage_in])"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "route(10:voltage!, merge, [20:voltage!, 30:voltage!, 40:voltage!])\nconnect(10:voltage!, 50:voltage_in)"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "connect(messenger.input, report.watts)\nconnect(2.0, multiply.watts)"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: messenger.input is an input of messenger, not a Signal: read messenger's output as messenger.<output>.sig (messenger writes output)\n→ line 2: multiply.watts is an output of multiply, not an input"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "connect(ex messenger.output!, ad response.input)   # As if unmarked\nconnect(messenger.output!, ad response.input)      # As if unmarked\nconnect(ad response.input, ex messenger.output!)   # Either order\nconnect(ad response.input, messenger.output!)      # Out of order\nroute(ex 10:voltage!, exit, [ad 20:voltage_in, ad 30:voltage_in, ad 40:voltage_in])\t# In a route...exit statement\nroute(ex 10:voltage!, merge, [ex 20:voltage!, ex 30:voltage!, ex 40:voltage_in])\t# In a route...merge statement"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 4: arguments out of order: the input is marked ad, so mark the source too (ex for a Signal, ab for a parameter, file or value), or put the source first"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "connect(messenger.output.sig, response.input)\nconnect(messenger.output.sta.sig, response.lle.input)\nconnect(ad response.input, ex messenger.output!)\nconnect(response.input.lle, ex messenger.output!)"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "code",
+  "text": "connect(multiply.wats!, report.watts)\nconnect(multiply.watts!, report.watts)\nconnect(messenger.output!, report.watts)"
+ },
+ {
+  "chapter": "Signal Routing",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 1: multiply has no output wats (multiply writes watts)\n→ line 2: report has no input wats (its inputs: watts)\n→ line 3: report.watts takes float, got text"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": "wave.jl",
+  "kind": "code",
+  "text": "# signet: out wave\nusing Signet\ncycles = 22 \n# 220 Hz tone plus its 660 Hz harmonic at 0.3: half a cycle\nhalf = [0.0, 0.3618, 0.6598, 0.8498, 0.9192, 0.8900,\n \t\t\t0.8091, 0.7313, 0.7000, 0.7313, 0.8091, 0.8900,\n\t\t\t 0.9192, 0.8498, 0.6598, 0.3618]\ncycle = [half; -half]            \t\t# Second half mirrors the first\nv = [repeat(cycle, cycles); 0.0] # End at zero\nsignals.wave = series(v; domain=\"time\", start=0.0, step=1/7040)"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": "saturate.sg",
+  "kind": "code",
+  "text": "# signet: in series::s1, in float::limit, out series::s2\nlet s2 = saturate(s1, {-limit, limit})\noutput(series::s2, s2)\t\t"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": "excess.sg",
+  "kind": "code",
+  "text": "# signet: in series::s1, in float::limit, out series::s2\nlet s2 = excess(s1, {-limit, limit})\noutput(series::s2, s2)\t\t"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": null,
+  "kind": "code",
+  "text": "# signet: in series::s1, in float::q, out series::s2\nlet s2 = quantize(s1, q)\noutput(series::s2, s2)\t\t"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": null,
+  "kind": "code",
+  "text": "run(wave)\nrun(volume)\nconnect(wave.wave!, amplifier.s1)\nconnect(volume.k1!, amplifier.rg_ohms)\nrun(amplifier)\nrun(brake)\nconnect(amplifier.s2!, spindown.s1)\nconnect(brake.k1!, spindown.factor)\nrun(spindown)\nrun(ceiling)\nroute(spindown.s2!, exit, [saturate.s1, excess.s1])\nroute(ceiling.k1!, exit, [saturate.limit, excess.limit])\nrun(resolution)\nrun(saturate)\nrun(excess)\nconnect(saturate.s2!, quantize.s1)\nconnect(resolution.k1!, quantize.q)\nrun(quantize)"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": "amplifier.jl",
+  "kind": "code",
+  "text": "# signet: in series::s1, in float::rg_ohms, out series::s2, out float::gain_db\n# Models an AD8421 instrumentation amplifier\nusing Signet\ns = signals.s1\nr = signals.rg_ohms\ngain = (9900/r) + 1     # G = 1 + (9.9 kΩ/RG)\nv = s.values .* gain    # Scale each sample\nsignals.s2 = s.step === nothing ?   # Signal with gain applied\n    series(v; domain=s.domain, x=s.x) :\n    series(v; domain=s.domain, start=s.start, step=s.step)\nsignals.gain_db = 20 * log10(gain)  # Gain in decibels"
+ },
+ {
+  "chapter": "Signal Shaping",
+  "label": null,
+  "kind": "code",
+  "text": "# signet: in series::s1, in float::factor, out series::s2\nrate(t) = t * (1 + factor * t)\noutput(series::s2, warp(rate, unity, s1))"
+ },
+ {
+  "chapter": "Modules",
+  "label": null,
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.py",
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts\nfrom signet import signals\nvolts = signals.volts          # Read two inputs\namps = signals.amps\nsignals.watts = volts * amps  # Write one output: multiply.watts.sig"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.jl",
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts\nusing Signet: signals\nvolts = signals.volts\nsignals.watts = volts * signals.amps"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.a68",
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts #\nBEGIN\n   REAL v = signet get real (\"volts\");\n   REAL i = signet get real (\"amps\");\n   signet put real (\"watts\", v * i, \"\")\nEND"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.sg",
+  "kind": "code",
+  "text": "# signet: in float::volts, in float::amps, out float::watts\nlet float::v = volts\nlet float::i = amps\noutput(float::watts, v * i)"
+ },
+ {
+  "chapter": "Modules",
+  "label": null,
+  "kind": "code",
+  "text": "sudo apt install gcc g++ gnat gfortran rustc"
+ },
+ {
+  "chapter": "Modules",
+  "label": "Terminal",
+  "kind": "code",
+  "text": "gcc -O2 -std=c11 -I include module.c -o module -lm\ng++ -O2 -std=c++17 -I include module.cpp -o module"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.c",
+  "kind": "code",
+  "text": "// signet: in float::volts, in float::amps, out float::watts\n#include <signet.h>\nint main(void) {\n    double v = signet_get_double(\"volts\");\n    double i = signet_get_double(\"amps\");\n    signet_put_double(\"watts\", v * i, NULL);\n    return 0;\n}"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.cpp",
+  "kind": "code",
+  "text": "// signet: in float::volts, in float::amps, out float::watts\n#include <signet.hpp>\nint main() {\n    double v = signet::in<double>(\"volts\");\n    double i = signet::in<double>(\"amps\");\n    signet::out(\"watts\", v * i);\n}"
+ },
+ {
+  "chapter": "Modules",
+  "label": "Terminal",
+  "kind": "code",
+  "text": "mkdir -p obj\ngnatmake -q -O2 -gnat2012 -Iinclude -D obj module.adb -o module"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.adb",
+  "kind": "code",
+  "text": "--  signet: in float::volts, in float::amps, out float::watts\nwith Signet;\nprocedure Multiply is\n   V : constant Long_Float := Signet.Get_Float (\"volts\");\n   I : constant Long_Float := Signet.Get_Float (\"amps\");\nbegin\n   Signet.Put (\"watts\", V * I);\nend Multiply;"
+ },
+ {
+  "chapter": "Modules",
+  "label": "Terminal",
+  "kind": "code",
+  "text": "# Once\ngfortran -O2 -c -J include include/signet.f90 \\\n -o include/signet.o\n# Each module\ngfortran -O2 -I include module.f90 include/signet.o -o module"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.f90",
+  "kind": "code",
+  "text": "! signet: in float::volts, in float::amps, out float::watts\nprogram multiply\n  use signet\n  implicit none\n  real(8) :: v, i\n  call signet_get(\"volts\", v)\n  call signet_get(\"amps\", i)\n  call signet_put(\"watts\", v * i)\nend program multiply"
+ },
+ {
+  "chapter": "Modules",
+  "label": "Terminal",
+  "kind": "code",
+  "text": "# Once\nrustc --edition 2021 -O --crate-type rlib \\\n --crate-name signet include/signet.rs -o include/libsignet.rlib\n# Each module\nrustc --edition 2021 -O \\\n --extern signet=include/libsignet.rlib module.rs -o module"
+ },
+ {
+  "chapter": "Modules",
+  "label": "multiply.rs",
+  "kind": "code",
+  "text": "// signet: in float::volts, in float::amps, out float::watts\nuse signet::{get_f64, put};\nfn main() {\n    let watts = get_f64(\"volts\") * get_f64(\"amps\");\n    put(\"watts\", &watts, \"\");\n}"
+ },
+ {
+  "chapter": "Feedback Control",
+  "label": "car.py",
+  "kind": "code",
+  "text": "# signet: in float::v, in float::force, in float::grade\n# signet: in float::dt, in float::mu\n# signet: in float::wd_front = 0.6, out float::speed\nfrom signet import signals\nM, G, RHO, CDA, CRR = 1500.0, 9.80665, 1.2, 0.6, 0.010\nv, mu, wd = signals.v, signals.mu, signals.wd_front\nmax_tract_force_acc = mu * M * G * wd         # Front axle\nmax_tract_force_brake = -mu * M * G           # All wheels\nf = max(signals.force, max_tract_force_brake)\nf = min(f, max_tract_force_acc)\ndrag = 0.5 * RHO * CDA * v * v                # Air, N\nroll = CRR * M * G                            # Tires, N\nhill = M * G * signals.grade                  # Grade, N\nsignals.speed = v + signals.dt * (f - drag - roll - hill) / M"
+ },
+ {
+  "chapter": "Feedback Control",
+  "label": "controller.cpp",
+  "kind": "code",
+  "text": "// signet: in float::y, in float::r, in float::dt, in float::i\n// signet: in float::yprev, in float::kp = 800.0\n// signet: in float::ki = 80.0, in float::kd = 0.0\n// signet: in float::umin = -3000.0, in float::umax = 4500.0\n// signet: out float::u, out float::integral\n#include <signet.hpp>\n#include <algorithm>\nint main() {\n    auto in = [](auto n) { return signet::in<double>(n); };\n    double y = in(\"y\"), r = in(\"r\"), dt = in(\"dt\");\n    double i = in(\"i\"), yprev = in(\"yprev\");\n    double kp = in(\"kp\"), ki = in(\"ki\"), kd = in(\"kd\");\n    double lo = in(\"umin\"), hi = in(\"umax\");\n    double e = r - y;\n    double d = -kd * (y - yprev) / dt;       // On y, not e\n    double u = kp * e + i + d;\n    if (u > lo && u < hi) i += ki * e * dt;   // No windup\n    signet::out(\"u\", std::clamp(u, lo, hi));\n    signet::out(\"integral\", i);\n}"
+ },
+ {
+  "chapter": "Feedback Control",
+  "label": "cruise.sg",
+  "kind": "code",
+  "text": "where float::dt = 0.5\nwhere float::mu = 0.2\nwhere float::grade = 0.03\nlet float::v = $v0\nlet float::vprev = $v0\nlet float::i = 0.0\nfor k = 1:240\n  connect(v, controller.y)\n  connect(30.0, controller.r)\n  connect(i, controller.i)\n  connect(vprev, controller.yprev)\n  connect(dt, controller.dt)\n  run(controller)\n  connect(v, car.v)\n  connect(controller.u!, car.force)\n  if k > 120 then\n    connect(grade, car.grade)\n  else\n    connect(0.0, car.grade)\n  end if\n  connect(mu, car.mu)\n  connect(dt, car.dt)\n  run(car)\n  vprev = v\n  v = car.speed!\n  i = controller.integral!\n  echo(k * dt, v, controller.u!)\nnext k"
+ },
+ {
+  "chapter": "Traceability",
+  "label": null,
+  "kind": "code",
+  "text": "let plateaus = [60.0, -40.0]\nfor k = 0:1\n  connect(plateaus[k], tvac.setpoint)\n  run(tvac)\n  when abs($sample(tvac.temperature!) - plateaus[k]) < 1.0 within 7200\n    delay(13500)\n    connect($sample(tvac.temperature!), performance_test.temperature)\n    run(performance_test)\n  end when\nnext k\nlineage(performance_test.report!)\nescape(tvac, 3600)"
+ },
+ {
+  "chapter": "Traceability",
+  "label": null,
+  "kind": "output",
+  "text": "→ line 11: lineage of performance_test.report.sig\n→   performance_test.report.sig = true  bool  made by chamber:performance_test.report at 2026-11-16T00:47:30Z, stamp ok\n→     module performance_test.rs (unchanged)\n→     temperature <-\n→       tvac.temperature.sig = {\"domain\": \"time\", \"x\": [0.0, 60.0, 120.0, 180.0, 240.0, ...  stream::time::float  made by chamber:tvac.temperature at 2026-11-16T00:47:30Z, stamp ok\n→         module tvac.rs (unchanged)\n→         setpoint <- written in the code"
+ },
+ {
+  "chapter": "Traceability",
+  "label": null,
+  "kind": "code",
+  "text": "./signet --lineage performance_test.report!"
+ },
+ {
+  "chapter": "Traceability",
+  "label": null,
+  "kind": "code",
+  "text": "{\"value\": true, \"type\": \"bool\",\n \"origin\": \"chamber:performance_test.report\",\n \"generated\": \"2026-11-16T00:47:30Z\", \"signet\": \"26.b.0.1.6\",\n \"inputs\": {\"temperature\": {\"value\": \"45288b08…\",\n     \"sources\": {\"tvac.temperature.sig\": \"057837b8…\"}}},\n \"module\": {\"file\": \"performance_test.rs\", \"sha256\": \"68922e28…\"},\n \"hash\": \"040c68c9…\"}"
+ },
+ {
+  "chapter": "Traceability",
+  "label": null,
+  "kind": "output",
+  "text": "→ performance_test.report! = true  bool  made by chamber:performance_test.report at 2026-11-16T00:47:30Z, stamp ok\n→   module performance_test.rs (unchanged)\n→   temperature <-\n→     tvac.temperature!: edited after it was stamped"
+ },
+ {
+  "chapter": "Starfire",
+  "label": null,
+  "kind": "code",
+  "text": "python3 starfire.py [--port <n>] [--no-browser]   # -> http://localhost:5791"
+ },
+ {
+  "chapter": "Starfire",
+  "label": null,
+  "kind": "code",
+  "text": "bash starfi.sh                     # run dist/starfire (no build)\nbash starfi.sh --build             # build only\nbash starfi.sh --all               # build, then run\nbash starfi.sh --clean --all       # delete dist/, then build and run\nbash starfi.sh --clean             # just delete dist/\nbash starfi.sh --all --new dist2   # build and run in dist2/\nbash starfi.sh --build --install-desktop   # also add a menu entry"
+ },
+ {
+  "chapter": "Test Cards",
+  "label": "diode.jl",
+  "kind": "code",
+  "text": "# signet: in float::voltage_in, out float::voltage_meas\nusing Signet: signals, series\nv = signals.voltage_in\nVOLTAGE_DROP = 0.63   # voltage drop property\nDIODE = \"GOOD\"   # or \"SHORTED\", \"OPEN\", \"REVERSED\"\nif DIODE == \"GOOD\"\n    vF = VOLTAGE_DROP\n    vR = v\nelseif DIODE == \"SHORTED\"\n    vF = 0.0     # shorted to ground, no voltage measured across it\n    vR = 0.0\nelseif DIODE == \"OPEN\"\n    vF = v       # open circuit, voltage at the measuring nodes only\n    vR = v\nelseif DIODE == \"REVERSED\"\n    vF = v       # installed backwards, conducts on the negative supply\n    vR = -VOLTAGE_DROP\nend\nvm = v > 0 ? vF : v < 0 ? vR : 0.0     # forward, reverse, or no supply\nwrite(signals, \"voltage_meas\", vm, \"float\")\nprintln(\"diode: $DIODE, voltage_in $v V, voltage_meas $vm V\")"
+ },
+ {
+  "chapter": "Performance",
+  "label": "generator.py",
+  "kind": "code",
+  "text": "# signet: out vector::float::x\nimport numpy as np\nfrom signet import signals\nrng = np.random.default_rng(seed=1)     # The same vector every run\nsignals.x = rng.random(100000)  \t# Set to 10000 for the Sprint competition"
+ },
+ {
+  "chapter": "Performance",
+  "label": "speedcheck.sg",
+  "kind": "code",
+  "text": "let x = generator.x!\nlet s = std(x)\necho(s)"
+ },
+ {
+  "chapter": "Performance",
+  "label": "speedcheck.py",
+  "kind": "code",
+  "text": "import json\nimport numpy as np\nwith open(\"generator.x.sig\") as f:\n    x = json.load(f)[\"value\"]\ns = np.std(x, ddof=1)\nprint(s)"
+ },
+ {
+  "chapter": "Performance",
+  "label": "speedcheck.jl",
+  "kind": "code",
+  "text": "using JSON3, Statistics \nx = Float64.(JSON3.read(read(\"generator.x.sig\", String))[\"value\"])\ns = std(x)\nprintln(s) "
+ },
+ {
+  "chapter": "Performance",
+  "label": null,
+  "kind": "code",
+  "text": "program speedcheck\n  use, intrinsic :: iso_c_binding\n  implicit none\n  interface                                          \n    real(c_double) function strtod(p, e) bind(c)\n      import :: c_ptr, c_double\n      type(c_ptr), value :: p\n      type(c_ptr) :: e\n    end function\n  end interface\n  character(len=:), allocatable, target :: s\n  real(c_double), allocatable :: x(:)\n  type(c_ptr) :: e\n  integer(c_intptr_t) :: p\n  integer :: u, sz, a, b, i\n  open(newunit=u, file=\"generator.x.sig\", access=\"stream\", form=\"unformatted\", action=\"read\")\n  inquire(unit=u, size=sz)\n  allocate(character(len=sz + 1) :: s)\n  read(u) s(1:sz)                                    \n  close(u)\n  s(sz + 1:) = c_null_char                           \n  a = index(s, '\"value\": [') + len('\"value\": [')     \n  b = a + index(s(a:), ']') - 2\n  allocate(x(count([(s(i:i) == ',', i = a, b)]) + 1))\n  p = transfer(c_loc(s(a:a)), p)\n  do i = 1, size(x)                                  \n    x(i) = strtod(transfer(p, e), e)\n    p = transfer(e, p) + 1\n  end do\n  print '(g0.16)', sqrt(sum((x - sum(x) / size(x))**2) / (size(x) - 1))   \nend program speedcheck"
+ },
+ {
+  "chapter": "Performance",
+  "label": null,
+  "kind": "code",
+  "text": "hyperfine -N --warmup 3 --prepare './signet launch.sg' \\\n  './signet speedcheck.sg' 'python3 speedcheck.py' 'julia speedcheck.jl' './speedcheck'"
+ },
+ {
+  "chapter": "Advanced Topics",
+  "label": "reentry.sg",
+  "kind": "code",
+  "text": "# Atmosphere: density and speed of sound vs. altitude,\n# gamma from the composition\nrun(atmosphere)\n# Shields: outlines, nose radii, Newtonian drag\nconnect(atmosphere.gamma!, geometry.gamma)\nrun(geometry)\n# Ballistic entry for each shield\nconnect(atmosphere.rho!, trajectory.rho)\nconnect(atmosphere.a!, trajectory.a)\nconnect(geometry.radius!, trajectory.radius)\nconnect(geometry.radius!, aerothermal.radius)\nconnect(geometry.radius_base!, trajectory.radius_base)\nconnect(geometry.cd!, trajectory.cd)\nconnect(geometry.cd_base!, trajectory.cd_base)\nconnect(geometry.area!, trajectory.area)\n\n# Entry mass, kg: any mass that reaches Mach 1.5 above\n# the surface.\nconnect(454.0, trajectory.mass)\nrun(trajectory)\n# Shock layers, grid and heating\nconnect(geometry.shield!, aerothermal.shield)\nconnect(geometry.base!, aerothermal.base)\nconnect(atmosphere.gamma!, aerothermal.gamma)\nconnect(geometry.radius_base!, aerothermal.radius_base)\nconnect(trajectory.qs!, aerothermal.qs)\nconnect(trajectory.qs_base!, aerothermal.qs_base)\nconnect(trajectory.state_base!, aerothermal.state_base)\nconnect(trajectory.state!, aerothermal.state)\nrun(aerothermal)"
+ },
+ {
+  "chapter": "Advanced Topics",
+  "label": null,
+  "kind": "code",
+  "text": "d = 0.143rn * exp(3.24 / M^2)\nrc = 1.143rn * exp(0.54 / (M - 1)^1.2)\nxs(y) = -d + rc * cot(b)^2 *\n        (sqrt(1 + (y * tan(b) / rc)^2) - 1)"
+ },
+ {
+  "chapter": "Appendix B: Signal Processing Modules",
+  "label": null,
+  "kind": "code",
+  "text": "# sweep.jl: LOGARITHMIC SINE SWEEP     \n#\n# Writes a logarithmic sine sweep to the \"waveform\" output port (<prefix>-sweep.waveform.sig).\n# Defaults: NASA GEVS protoflight low-level sine survey, 0.25 g, 20-2000 Hz at 4 octaves/minute.\n# Arguments or Starfire parameters (all optional): f0 Hz, f1 Hz, octaves (per minute), rate (samples/s), amplitude (g)\n# --stream (or a stream parameter) writes it as a stream at 5000 samples/s by default, in real time if possible\nusing Signet: signals, series, stream\n# signet: out waveform\nfunction arg(name, default)\n    i = findfirst(==(\"--$name\"), ARGS)\n    v = i === nothing ? get(ENV, \"STARFIRE_PARAM_$(uppercase(name))\", \"\") : ARGS[i + 1]\n    isempty(v) ? default : parse(Float64, v)\nend\nstreaming = \"--stream\" in ARGS || !isempty(get(ENV, \"STARFIRE_PARAM_STREAM\", \"\"))\nf0, f1, oct, amp = arg(\"f0\", 20.0), arg(\"f1\", 2000.0), arg(\"octaves\", 4.0), arg(\"amplitude\", 0.25)\nrate = arg(\"rate\", streaming ? 5000.0 : 10000.0)\nr = oct / 60                                          # Octaves/s\ndur = log2(f1 / f0) / r\ndt = 1 / rate\nn = floor(Int, dur * rate)\nx(t) = amp * sin(2π * f0 * (2^(r * t) - 1) / (r * log(2)))\nts = (0:n-1) .* dt\nif streaming\n    s, t0 = stream(\"waveform\"; domain=\"time\"), time()\n    for t in ts\n        sleep(max(0, t0 + t - time()))  # Real time, or flat out\n        write(s, t, x(t))\n    end\nelse\n    signals.waveform = series(x.(ts); domain=\"time\", start=0.0, step=dt)\nend\nprintln(\"sweep: $f0-$f1 Hz at $oct oct/min, $(round(dur, digits=1)) s, $n samples at $rate Hz, $amp g peak\")"
+ },
+ {
+  "chapter": "Appendix B: Signal Processing Modules",
+  "label": null,
+  "kind": "code",
+  "text": "# stft.jl: SHORT-TIME FOURIER TRANSFORM\n#\n# Reads a time series or a time stream on \"signal_in\"; writes the dominant frequency in each window\n# (\"ridge\", time) and the mean magnitude spectrum (\"spectrum\", series::frequency). From a series, the ridge is\n# a series; from a stream, it is a stream, one value per window as each fills, and the spectrum is written\n# when the stream ends.\n# Arguments or Starfire parameters (optional): window, hop (samples). Defaults suit the GEVS sweep from sweep.jl:\n# 1024-sample windows every 512 samples, 9.8 Hz bins at 10000 samples/s.\nusing Signet: signals, series, stream, StreamIn\n# signet: in signal_in, out spectrum, out ridge\nfunction arg(name, default)\n    k = findfirst(==(\"--$name\"), ARGS)\n    v = i === nothing ? get(ENV, \"STARFIRE_PARAM_$(uppercase(name))\", \"\") : ARGS[i + 1]\n    isempty(v) ? default : parse(Int, v)\nend\nfail(msg) = (println(stderr, \"stft: \", msg); exit(1))\nwin, hop = arg(\"window\", 1024), arg(\"hop\", 512)\nnb = win ÷ 2 + 1\nw = [0.5 - 0.5 * cos(2π * m / (win - 1)) for m in 0:win-1]    # Hann\nE = [cis(-2π * p * m / win) for p in 0:nb-1, m in 0:win-1]    # DFT rows, bins 0..win/2\nframe(seg) = abs.(E * (seg .* w))\nfunction from_series(s)\n    s.domain == \"time\" || fail(\"signal_in must be a time series, got $(s.domain)\")\n    x = Float64.(s.values)\n    dt = s.step === nothing ? s.x[2] - s.x[1] : s.step\n    length(x) >= win || fail(\"$(length(x)) samples is shorter than the $win-sample window\")\n    starts = 0:hop:length(x)-win\n    mag = permutedims(reduce(hcat, [frame(x[k+1:k+win]) for k in starts]))   # frames x bins\n    f = collect(0:nb-1) ./ (win * dt)\n    t = [(k + win / 2) * dt for k in starts]                             \t# Window centers\n    ridge = [f[argmax(mag[r, :])] for r in axes(mag, 1)]\n    signals.ridge = series(ridge; domain=\"time\", x=t)\n    signals.spectrum = series(vec(sum(mag, dims=1)) ./ size(mag, 1); domain=\"frequency\", x=f)\n    println(\"stft: $(length(t)) windows of $win (hop $hop), $(f[2]) Hz bins, ridge $(ridge[1]) -> $(ridge[end]) Hz\")\nend\nfunction from_stream(s)\n    ridge = stream(\"ridge\"; domain=\"time\")\n    buf, total, frames = Float64[], zeros(nb), 0\n    t0, dt, f, first_r, last_r = NaN, NaN, Float64[], NaN, NaN\n    for (t, v) in s    # Each sample as it arrives, until the stream ends\n        if isnan(t0)\n            t0 = t\n        elseif isnan(dt)\n            dt = t - t0\n            dt > 0 || fail(\"signal_in's samples must rise in time\")\n            f = collect(0:nb-1) ./ (win * dt)\n        end\n        push!(buf, v)\n        if length(buf) >= win\n            m = frame(buf[1:win])\n            total .+= m\n            last_r = f[argmax(m)]\n            frames == 0 && (first_r = last_r)\n            write(ridge, t0 + (frames * hop + win / 2) * dt, last_r)     \t      # Window center\n            frames += 1\n            deleteat!(buf, 1:hop)\n        end\n    end\n    frames > 0 || fail(\"the stream ended before filling the $win-sample window\")\n    signals.spectrum = series(total ./ frames; domain=\"frequency\", x=f)\n    println(\"stft: $frames windows of $win (hop $hop) from a stream, $(f[2]) Hz bins, ridge $first_r -> $last_r Hz\")\nend\ns = signals.signal_in\ns isa StreamIn ? from_stream(s) : from_series(s)"
+ },
+ {
+  "chapter": "Appendix C: Performance Test Procedure",
+  "label": null,
+  "kind": "code",
+  "text": "hyperfine -N --warmup 3 --prepare './signet launch.sg' \\\n  './signet speedcheck.sg' 'python3 speedcheck.py' 'julia speedcheck.jl' './speedcheck'"
+ },
+ {
+  "chapter": "Appendix D: Linguistic Connections",
+  "label": null,
+  "kind": "code",
+  "text": "route(ex 10:message!, exit, [ad 20:input, ad 30:input, ad 40:input])"
+ },
+ {
+  "chapter": "Appendix D: Linguistic Connections",
+  "label": null,
+  "kind": "code",
+  "text": "route(ex 10:message!, merge, [ex 20:message!, ex 30:message!, ex 40:message!])\nconnect(ex 10:message!, ad 50:input)"
+ },
+ {
+  "chapter": "Appendix D: Linguistic Connections",
+  "label": null,
+  "kind": "code",
+  "text": "   (\"route\", 1, \"exit\", (\"ref\", \"10:message.sig\"),\n    [([], None, \"input\", \"20\"),\n     ([], None, \"input\", \"30\"),\n     ([], None, \"input\", \"40\")])"
+ },
+ {
+  "chapter": "Appendix D: Linguistic Connections",
+  "label": null,
+  "kind": "code",
+  "text": "\t   \t    \t\t\tSignet\nroute(ex 10:message!, exit, [ad 20:input, ad 30:input, ad 40:input])\n              │\n              ▼   Parser\nnode = (\"route\", self.line, mode, src, items)\n              │\n              ▼   Runner, block()\nelif kind == \"route\":\n    self._route(nd)\n              │\n              ▼   Runner\n_, line, mode, src, items = nd\n              │\n              ▼   Exit: once per target\nself._hold(line, sv, words, mod, port, point)\n              │\n              ▼   Store the connection for point 20...30...40's input\nself.pending[\"20\"][\"input\"] = {value, type, source, sources}"
+ },
+ {
+  "chapter": "Appendix D: Linguistic Connections",
+  "label": null,
+  "kind": "code",
+  "text": "pending[\"20\"][\"input\"] = {\"value\": \"Hello, World!\",\n                          \"type\": \"text\",\n                          \"source\": \"10:message.sig\",\n                          \"sources\": {\"10:message.sig\": <stamp>}}"
+ },
+ {
+  "chapter": "Appendix E: Visualizing a System",
+  "label": null,
+  "kind": "code",
+  "text": "python3 visualizer.py system_1.sg -o diagram_1.svg --theme light --large --label car=10:speed --label gradient=20:acceleration"
+ },
+ {
+  "chapter": "Appendix E: Visualizing a System",
+  "label": null,
+  "kind": "code",
+  "text": "./signet wiring.sg --connections | python3 sys2dot.py | dot -Tsvg -o system_1.svg"
+ },
+ {
+  "chapter": "Appendix E: Visualizing a System",
+  "label": "sys2dot.py",
+  "kind": "code",
+  "text": "import json, sys\nprint(\"digraph signet {\\n  rankdir=LR; node [shape=box];\")\nfor c in json.load(sys.stdin):\n    dst = c[\"module\"]\n    for ref in c[\"refs\"]:\n        src, port = ref.split(\".\")[:2]\n        dash = \", style=dashed\" if ref in c[\"stepped\"] else \"\"\n        print(f'  \"{src}\" -> \"{dst}\" [label=\"{port} → {c[\"port\"]}\"{dash}];')\n    for k in c[\"constants\"]:\n        node = f'{dst}.{c[\"port\"]}={k}'  # One node per use\n        print(f'  \"{node}\" [label=\"{k}\", shape=plaintext];')\n        print(f'  \"{node}\" -> \"{dst}\" [label=\"{c[\"port\"]}\"];')"
+ }
+]

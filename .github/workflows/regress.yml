@@ -1,0 +1,101 @@
+# regress.yml:    SIGNET REGRESSION ON LINUX AND WINDOWS: FROM SOURCE, THE PIPX INSTALL, AND THE STANDALONE AND ONEFILE BINARIES
+# AUTHOR:         DANIEL DESAI
+# UPDATED:        2026-11-17
+# VERSION:        26.b.0.1.7
+#
+# Expects regress.py and blocks.json in signet-tests/ at the top of the repo.
+
+name: regress
+on: [push, pull_request, workflow_dispatch, workflow_call]
+
+jobs:
+  regress:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6'
+      - name: Julia packages
+        run: julia -e 'using Pkg; Pkg.add(["JSON3", "Quaternions"])'
+
+      - name: Toolchains (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ gnat gfortran algol68g graphviz patchelf
+      - name: Toolchains (Windows; MSYS2 UCRT64 for gcc, g++, gfortran, gnatmake)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: UCRT64
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-fortran mingw-w64-ucrt-x86_64-gcc-ada
+      - name: PATH and python3 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install graphviz -y --no-progress
+          "${{ steps.msys2.outputs.msys2-location }}\ucrt64\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          "C:\Program Files\Graphviz\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          $py = (Get-Command python).Source
+          Copy-Item $py (Join-Path (Split-Path $py) python3.exe)
+      - name: Toolchain versions
+        shell: bash
+        run: |
+          for t in python3 gcc g++ gfortran gnatmake rustc julia ghc a68g dot; do echo "$t: $(command -v $t || echo missing)"; done
+
+      - name: regress.py from source
+        run: python3 signet-tests/regress.py .
+      - name: regress.py on the pipx install (signet-lang)
+        shell: bash
+        run: |
+          python3 -m pip install pipx
+          python3 -m pipx install .
+          bin="$(python3 -m pipx environment --value PIPX_BIN_DIR)/signet"
+          [ -f "$bin" ] || bin="$bin.exe"
+          "$bin" --version
+          python3 signet-tests/regress.py . "$bin"
+
+      - name: Nuitka
+        run: python3 -m pip install nuitka zstandard
+      - name: Build and regress the standalone binary (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ./build.sh
+          python3 signet-tests/regress.py . "dist/signet-$(cat VERSION)-linux-x86_64/signet/signet"
+      - name: Build and regress the onefile binary (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ./build.sh --onefile
+          python3 signet-tests/regress.py . "dist/signet-$(cat VERSION)-linux-x86_64-onefile/signet/signet"
+      - name: Build and regress the standalone binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./build.ps1
+          if ($LASTEXITCODE) { exit 1 }
+          python3 signet-tests/regress.py . "dist/signet-$((Get-Content VERSION -TotalCount 1).Trim())-windows-x86_64/signet/signet.exe"
+      - name: Build and regress the onefile binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./build.ps1 -OneFile
+          if ($LASTEXITCODE) { exit 1 }
+          python3 signet-tests/regress.py . "dist/signet-$((Get-Content VERSION -TotalCount 1).Trim())-windows-x86_64-onefile/signet/signet.exe"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signet-${{ matrix.os }}
+          path: dist/*.*z*
