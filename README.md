@@ -54,7 +54,7 @@ $ ./signet hello.sg
 → line 1: 'Hello, world!' = "Hello, world!"
 ```
 
-That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module to receive the message, and wire the two together:
+That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module 'world.cpp` to receive the message, and wire the two together with `messenger.sg`
 
 `hello.sg`
 ```
@@ -75,7 +75,7 @@ int main() {
 }
 ```
 
-`wiring.sg`
+`messenger.sg`
 ```
 run(hello)
 connect(hello.message!, world.input)
