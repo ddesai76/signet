@@ -4,7 +4,7 @@
 
 Signet was first developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
 
-This repository goes with the book *The Signet Programming Language* (Daniel Desai, 2026). The book is the full guide; this README covers getting started.
+For further details, see *The Signet Programming Language* (Daniel Desai, 2026). 
 
 ## Contents
 
@@ -302,4 +302,4 @@ In Starfire, Signet code goes in each test point's **Signals** box, and a point'
 
 MIT. The software is provided "as is", without warranty of any kind. See `LICENSE`.
 
-Developed with AI assistance (Claude, Anthropic); all technical claims and results were reviewed and verified by the author.
+
