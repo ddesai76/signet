@@ -16,13 +16,11 @@ For further details, see *The Signet Programming Language* (Daniel Desai, 2026).
 | `pyproject.toml` | The PyPI package, `signet-lang` |
 | `.github/workflows/regress.yml` | Runs `signet-tests/regress.py` on Linux and Windows, from source, the pipx install and both binaries |
 | `.github/workflows/release.yml` | Publishes a tagged release to PyPI once the regression passes |
-| `signet.rs` | The Rust module helper, as written by `--export-helpers` |
 | `visualizer.py` | Draws a system as SVG, in the style of Starfire's System view |
-| `sys2dot.py` | Turns `--connections` JSON into a Graphviz graph |
 
 ## Install
 
-From PyPI, as `signet-lang` (the command is `signet`). pipx keeps it in its own environment:
+From PyPI, as `signet-lang` (the command is `signet`). 
 
 ```sh
 pipx install signet-lang
@@ -56,7 +54,7 @@ $ ./signet hello.sg
 → line 1: 'Hello, world!' = "Hello, world!"
 ```
 
-That is a statement, not yet a Signal. To send one, make `hello.sg` a module with an output port, write a module that receives it, and wire the two together:
+That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module to receive the message, and wire the two together:
 
 `hello.sg`
 ```
@@ -77,7 +75,7 @@ int main() {
 }
 ```
 
-`messenger.sg`
+`wiring.sg`
 ```
 run(hello)
 connect(hello.message!, world.input)
@@ -85,11 +83,11 @@ run(world)
 ```
 
 ```
-$ ./signet messenger.sg
+$ ./signet wiring.sg
 → Hello, world!
 ```
 
-`connect` is an arrow from one module's output port to another module's input port. Within a single pass the graph is acyclic, because a module can only read a Signal that already exists. Feedback loops are written as passes, each reading what the one before it wrote.
+`connect` transmits a Signal from one module's output port to another module's input port. Within a single pass the graph is acyclic, because a module can only read a Signal that already exists. Feedback loops are written as passes, each reading what the one before it wrote.
 
 ## Signals
 
@@ -106,7 +104,7 @@ When a module's run ends cleanly, Signet **stamps** each Signal it wrote. A stam
 
 Signet borrows from Python, Julia, MATLAB, BASIC, Fortran 90, Rust, Haskell, C++ and the Unix shell. Typing is strong and dynamic, with optional `type::` annotations. Indexing is zero-based by default; `index(1)` changes that. Slices include both ends, and `last` names the last element.
 
-Signet is deliberately **not Turing-complete**. Each loop is capped at 100,000 iterations, there is no unbounded `while`, and functions can't recurse, so every script terminates. Anything that needs more belongs in a module.
+Signet is deliberately not Turing-complete. Each loop is capped at 100,000 iterations, there is no unbounded `while`, and functions are non-recursive, so every script terminates. Anything that needs more complexity can be implemented in a module written in a different language.
 
 ```
 # Comments start with #
@@ -131,13 +129,13 @@ lineage(plot.figure!)                 # Print the chain that made a Signal
 
 **Types:** `int`, `float`, `real`, `num`, `bool`, `hex`, `bits::<n>`, `text`, `complex`, `quaternion`, `hypercomplex`, `vector::<type>`, `tuple`, `range`, `series::<domain>::<float|complex|quaternion>`, `stream::<domain>::<float|complex>`, `bus`, or a file extension such as `csv`.
 
-**Routing:** `route(v, exit, [a, b])` fans a value out to several inputs, and `route(s, merge, [t, u])` appends Signals. Optional case markers state a value's role: `ex` (`.sta`), `ab` (`.lta`) and `ad` (`.lle`).
+**Routing:** `route(v, exit, [a, b])` fans a value out to several inputs, and `route(s, merge, [t, u])` appends Signals. Optional case markers, based on the directional cases of natural languages, specify a value as elative `ex` (`.sta`), ablative `ab` (`.lta`) or adessive `ad` (`.lle`).
 
 **Waiting:** `when c within s by s … end when` waits for a condition, with deadlines. Streams (timestamped samples that arrive while their source is running) are read with `sample(s)`, `$sample(s)`, `@sample(s)` and `freeze(s)`.
 
-Appendix A of the book has the full quick reference: 120 reserved words, the operators in order of precedence, and the built-in functions. The additions since the book follow.
+Appendix A of the book has the full quick reference: 120 reserved words, the operators in order of precedence, and the built-in functions. Additions since publication follow.
 
-### Quick reference: new in 26.b.0.1.7
+### Quick reference: what's new in 26.b.0.1.7
 
 | Syntax | Definition |
 |---|---|
@@ -155,13 +153,13 @@ Appendix A of the book has the full quick reference: 120 reserved words, the ope
 | `quat2ang(q)` | `[Z, Y, X]` back, in radians; at a pitch of ±π/2 the roll is 0 and Z takes the rest |
 | `sum`, `product`, `mean`, `norm`, `length` | Also work on a `vector::quaternion` (`product` multiplies in order) |
 
-`num` is still a real or complex number, so existing `num` ports are unchanged. `quaternion::` doesn't turn a real into a quaternion (as `complex::` doesn't); arithmetic does. Streams of quaternions are planned for a later version.
+`num` is still a real or complex number, so existing `num` ports are unchanged. `quaternion::` doesn't turn a real into a quaternion (as `complex::` doesn't). 
 
-Built-in words added: `versor`, `quat2ang`, `ang2quat` (built-in functions, so not variable names) and `hypercomplex` (a type). `elseif` and `base` now do what they were reserved for.
+Built-in words added: `versor`, `quat2ang`, `ang2quat` (built-in functions) and `hypercomplex` (a supertype). `elseif` and `base`.
 
 ## Modules
 
-A module is any program that reads its inputs and writes its outputs as Signals. A module declares its ports in a comment, using its own language's comment marker (`#`, `//`, `--` or `!`):
+A module is any program that reads its inputs and writes its outputs as Signals. A module declares its ports in a comment, using its own language's comment marker (`#`, `//`, `--` or `!`). For example,
 
 ```python
 # signet: in float::volts, in float::amps, out float::watts
@@ -206,7 +204,7 @@ Quaternion ports work in every helper: `Quaternion` in Python, Quaternions.jl's 
 
 ### Helpers
 
-The helper files are embedded in Signet. To write them out, run:
+Language helper files are embedded in Signet. To write them out, run:
 
 ```sh
 ./signet --export-helpers include
