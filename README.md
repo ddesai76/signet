@@ -144,7 +144,7 @@ Appendix A of the book has the full quick reference: 120 reserved words, the ope
 | `(w, x, y, z)` | A quaternion, w + xi + yj + zk: `let quaternion::q = (1, 0, 0, 0)` |
 | `quaternion` | A quaternion; also `vector::quaternion` and `series::<domain>::quaternion` |
 | `hypercomplex` | A real, complex or quaternion number |
-| `+ - * /` on quaternions | Hamilton's product (`i * j` is `k`); a real or complex number promotes. `p / q` is `p` times the inverse of `q`. Only `==` and `/=` compare. |
+| `+ - * /` on quaternions | Hamiltonian product (`i * j` is `k`); a real or complex number promotes. `p / q` is `p` times the inverse of `q`. Only `==` and `/=` compare. |
 | `abs(q)`, `\|q\|`, `conj(q)`, `q‾`, `arg(q)` | Norm, conjugate, and the angle from the real axis (0 to π) |
 | `q ** n`, `power(q, n)`, `root(q, n)` | A real power or root (principal value) |
 | `Re(q)`, `Im(q)` | The real part `w`, and the vector part `[x, y, z]` |
