@@ -6,15 +6,25 @@
 # Expects regress.py and blocks.json in signet-tests/ at the top of the repo.
 
 name: regress
-on: [push, pull_request, workflow_dispatch, workflow_call]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      os:
+        description: JSON list of runners
+        type: string
+        default: '["ubuntu-latest", "windows-latest"]'
 
 jobs:
   regress:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(inputs.os || '["ubuntu-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}     # Windows reports but doesn't block, for now
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4

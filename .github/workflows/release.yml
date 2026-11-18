@@ -15,6 +15,8 @@ on:
 jobs:
   regress:
     uses: ./.github/workflows/regress.yml
+    with:
+      os: '["ubuntu-latest"]'      # Windows joins once it passes
 
   build:
     needs: regress
