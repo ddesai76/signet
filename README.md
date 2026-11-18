@@ -1,6 +1,6 @@
 # Signet
 
-**Signet 26** (26.b.0.1.7) is a lightweight coordination language for building systems of programs written in any language. The programs, called **modules**, pass results to one another as **Signals**. Signet is the wiring between them: a typed directed multigraph where modules are nodes and Signals are arrows.
+**Signet 26** (26.b.0.1.7.5) is a lightweight coordination language for building systems of programs written in any language. The programs, called **modules**, pass results to one another as **Signals**. Signet is the wiring between them: a typed directed multigraph where modules are nodes and Signals are arrows.
 
 Signet was first developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
 
