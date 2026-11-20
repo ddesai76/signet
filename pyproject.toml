@@ -1,9 +1,9 @@
 # pyproject.toml: SIGNET ON PYPI (signet-lang; the command is signet)
 # AUTHOR:         DANIEL DESAI
-# UPDATED:        2026-11-17
-# VERSION:        26.b.0.1.7
+# UPDATED:        2026-11-19
+# VERSION:        26.b.0.1.7.5
 #
-# PyPI version: 26.b.0.1.N is 26.0bN0 (betas); the stable release is 26.0. regress.py checks it matches VERSION.
+# PyPI version: 26.b.0.1.N is 26.0bN0, 26.b.0.1.N.M is 26.0b(N*10+M) (betas); the stable release, 27.1.0.0, is 27.1. regress.py checks it matches VERSION.
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signet-lang"
-version = "26.0b70"
+version = "26.0b75"
 description = "Signet: a coordination language that wires modules in any language together with Signals"
 readme = "README.md"
 license = "MIT"
