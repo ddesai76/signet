@@ -39,7 +39,7 @@ python3 signet.py hello.sg     # from source
 
 To build the binary, run `./build.sh` on Linux, or `powershell -ExecutionPolicy Bypass -File build.ps1` on Windows (needs `python -m pip install nuitka`).
 
-On Windows, run `python signet.py hello.sg` or `signet.exe hello.sg`. Compiled modules need the compilers on `PATH`: MSYS2's UCRT64 toolchain (`gcc`, `g++`, `gfortran`, `gnatmake`), Rust, and GHC; shell modules need Git Bash. Windows support is new in 26.b.0.1.7 and so far checked only by the CI workflow.
+Windows support is experimental: `signet.py` runs, but parts of the regression suite still fail there. Fixes are planned for 26.b.0.1.8.
 
 ## Hello, Signal
 
@@ -54,7 +54,7 @@ $ ./signet hello.sg
 → line 1: 'Hello, world!' = "Hello, world!"
 ```
 
-That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module 'world.cpp` to receive the message, and wire the two together with `messenger.sg`
+That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module `world.cpp` to receive the message, and wire the two together with `messenger.sg`
 
 `hello.sg`
 ```
@@ -83,7 +83,7 @@ run(world)
 ```
 
 ```
-$ ./signet wiring.sg
+$ ./signet messenger.sg
 → Hello, world!
 ```
 
@@ -91,7 +91,7 @@ $ ./signet wiring.sg
 
 ## Signals
 
-A Signal is a `.sig` file: one named result of one module run, written as JSON. In code, `!` is shorthand for `.sig`, so `messenger.output!` means `messenger.output.sig`.
+A Signal is a `.sig` file: one named result of one module run, written as JSON. In code, `!` is shorthand for `.sig`, so `hello.message!` is the same as `hello.message.sig`.
 
 ```json
 {"value": "Hello, world!", "type": "text", "origin": "hello.hello",
@@ -144,7 +144,7 @@ Appendix A of the book has the full quick reference: 120 reserved words, the ope
 | `(w, x, y, z)` | A quaternion, w + xi + yj + zk: `let quaternion::q = (1, 0, 0, 0)` |
 | `quaternion` | A quaternion; also `vector::quaternion` and `series::<domain>::quaternion` |
 | `hypercomplex` | A real, complex or quaternion number |
-| `+ - * /` on quaternions | Hamiltonian product (`i * j` is `k`); a real or complex number promotes. `p / q` is `p` times the inverse of `q`. Only `==` and `/=` compare. |
+| `+ - * /` on quaternions | Hamilton product (`i * j` is `k`); a real or complex number promotes. `p / q` is `p` times the inverse of `q`. Only `==` and `/=` compare. |
 | `abs(q)`, `\|q\|`, `conj(q)`, `q‾`, `arg(q)` | Norm, conjugate, and the angle from the real axis (0 to π) |
 | `q ** n`, `power(q, n)`, `root(q, n)` | A real power or root (principal value) |
 | `Re(q)`, `Im(q)` | The real part `w`, and the vector part `[x, y, z]` |
@@ -155,7 +155,7 @@ Appendix A of the book has the full quick reference: 120 reserved words, the ope
 
 `num` is still a real or complex number, so existing `num` ports are unchanged. `quaternion::` doesn't turn a real into a quaternion (as `complex::` doesn't). 
 
-Built-in words added: `versor`, `quat2ang`, `ang2quat` (built-in functions) and `hypercomplex` (a supertype). `elseif` and `base`.
+Built-in functions added: `versor`, `quat2ang`, `ang2quat`, `elseif` and `base`, and `hypercomplex` (a supertype). 
 
 ## Modules
 
