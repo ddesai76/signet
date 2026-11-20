@@ -1,10 +1,10 @@
 # Signet
 
-**Signet 26** (26.b.0.1.7.5) is a lightweight coordination language for building systems of programs written in any language. The programs, called **modules**, pass results to one another as **Signals**. Signet is the wiring between them: a typed directed multigraph where modules are nodes and Signals are arrows.
+**Signet 26** (26.b.0.1.7.5) is a lightweight coordination language for building systems of programs written in any language. The programs, called ***modules***, pass results to one another as ***Signals***. Signet is the wiring between them, a typed directed multigraph where modules are nodes and Signals are arrows.
 
-Signet was first developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
+Signet was initially developed for [Starfire](https://github.com/ddesai76/starfire), a test design suite where each test point can run a module. It also runs on its own, as wiring code in any folder of modules.
 
-For further details, see *The Signet Programming Language* (Daniel Desai, 2026). 
+For further details, see [*The Signet Programming Language*](https://a.co/d/0hsBrw7T) (Daniel Desai, 2026). 
 
 ## Contents
 
@@ -17,6 +17,7 @@ For further details, see *The Signet Programming Language* (Daniel Desai, 2026).
 | `.github/workflows/regress.yml` | Runs `signet-tests/regress.py` on Linux and Windows, from source, the pipx install and both binaries |
 | `.github/workflows/release.yml` | Publishes a tagged release to PyPI once the regression passes |
 | `visualizer.py` | Draws a system as SVG, in the style of Starfire's System view |
+| `signet-tests/` | The regression suite: every example in the book, and every case added since |
 
 ## Install
 
@@ -30,14 +31,7 @@ pipx upgrade signet-lang       # a newer release
 
 On Linux, `#!/usr/bin/env signet` as a program's first line lets `chmod +x hello.sg && ./hello.sg` run it.
 
-`signet.py` needs only Python 3.8 or later and its standard library, so it also runs without installing. Put `signet.py`, or the `signet` binary, in the working folder:
-
-```sh
-python3 signet.py hello.sg     # from source
-./signet hello.sg              # standalone binary
-```
-
-To build the binary, run `./build.sh` on Linux, or `powershell -ExecutionPolicy Bypass -File build.ps1` on Windows (needs `python -m pip install nuitka`).
+`signet.py` needs only Python 3.8 or later and its standard library, so it also runs without installing: put `signet.py`, or the standalone `signet` binary, in the working folder. To build the binary, run `./build.sh` on Linux, or `powershell -ExecutionPolicy Bypass -File build.ps1` on Windows (needs `python -m pip install nuitka`).
 
 Windows support is experimental: `signet.py` runs, but parts of the regression suite still fail there. Fixes are planned for 26.b.0.1.8.
 
@@ -50,11 +44,13 @@ echo('Hello, world!')
 ```
 
 ```
-$ ./signet hello.sg
+$ signet hello.sg
 → line 1: 'Hello, world!' = "Hello, world!"
 ```
 
-That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module `world.cpp` to receive the message, and wire the two together with `messenger.sg`
+Without installing, run `python3 signet.py hello.sg` from source, or `./signet hello.sg` with the standalone binary. The rest of this README uses `signet`.
+
+That's just saying hello, but to say it with a Signal, edit `hello.sg` so it's a module with an output port, write a second module `world.cpp` to receive the message, and wire the two together with `messenger.sg`:
 
 `hello.sg`
 ```
@@ -83,7 +79,7 @@ run(world)
 ```
 
 ```
-$ ./signet messenger.sg
+$ signet messenger.sg
 → Hello, world!
 ```
 
@@ -91,14 +87,17 @@ $ ./signet messenger.sg
 
 ## Signals
 
-A Signal is a `.sig` file: one named result of one module run, written as JSON. In code, `!` is shorthand for `.sig`, so `hello.message!` is the same as `hello.message.sig`.
+A Signal is a `.sig` file: one named result of one module run, written as JSON. In code, `!` is shorthand for `.sig`, so `hello.message!` is the file `hello.message.sig`; `!` is the preferred form. After `messenger.sg` runs in a folder called `messenger`, `hello.message!` holds:
 
 ```json
-{"value": "Hello, world!", "type": "text", "origin": "hello.hello",
- "generated": "2026-10-23T17:08:22Z", "hash": "5daa9ee1…"}
+{"value": "Hello, world!", "type": "text", "origin": "messenger:hello.message",
+ "generated": "2026-11-19T17:08:22Z", "signet": "26.b.0.1.7.5", "inputs": {},
+ "module": {"file": "hello.sg", "sha256": "1f3412ff…"}, "hash": "a7dd3f81…"}
 ```
 
-When a module's run ends cleanly, Signet **stamps** each Signal it wrote. A stamp records the hash of every input value and where it came from: a Signal by its stamp, a file by its SHA-256, a parameter by its value. It also records the module file. If anyone edits the Signal afterwards, it no longer matches its stamp.
+`origin` is the folder, module and port; `signet` is the version that stamped it; `inputs` holds each input's hash and source (`hello.sg` has none); `module` is the module file and its SHA-256; `hash` is the value's.
+
+When a module's run ends cleanly, Signet ***stamps*** each Signal it wrote. A stamp records the hash of every input value and where it came from: a Signal by its stamp, a file by its SHA-256, a parameter by its value. It also records the module file. If anyone edits the Signal afterwards, it no longer matches its stamp.
 
 ## The language at a glance
 
@@ -155,7 +154,7 @@ Appendix A of the book has the full quick reference: 120 reserved words, the ope
 
 `num` is still a real or complex number, so existing `num` ports are unchanged. `quaternion::` doesn't turn a real into a quaternion (as `complex::` doesn't). 
 
-Built-in functions added: `versor`, `quat2ang`, `ang2quat`, `elseif` and `base`, and `hypercomplex` (a supertype). 
+Added: the built-in functions `versor`, `quat2ang`, `ang2quat` and `base`, the keyword `elseif`, and the type `hypercomplex` (a supertype of real, complex and quaternion).
 
 ## Modules
 
@@ -207,7 +206,7 @@ Quaternion ports work in every helper: `Quaternion` in Python, Quaternions.jl's 
 Language helper files are embedded in Signet. To write them out, run:
 
 ```sh
-./signet --export-helpers include
+signet --export-helpers include
 ```
 
 | Language | File | Use |
@@ -251,7 +250,7 @@ v.write(t, x)
 
 ```
 signet [file] [--param NAME=VALUE] [--check] [--lineage SIG]
-       [--export-helpers DIR] [--connections] [--version]
+       [--export-helpers DIR] [--connections] [--graph] [--version]
 ```
 
 | Flag | Does |
@@ -261,6 +260,7 @@ signet [file] [--param NAME=VALUE] [--check] [--lineage SIG]
 | `--lineage SIG` | Prints the chain that made a Signal in this folder (`name.sig` or `name!`) |
 | `--export-helpers DIR` | Writes the module helpers into `DIR` |
 | `--connections` | Prints the file's `connect()`s as JSON, without running it |
+| `--graph` | Prints the system as a Graphviz graph, without running it |
 | `--version` | Prints the version |
 
 **Exit codes:** `0` means the file ran to the end, `1` means an error (the message names the line), and `2` means the code reached `break`.
@@ -270,7 +270,7 @@ Both `.sg` and the older `.signet` extension are accepted.
 ### Lineage
 
 ```
-$ ./signet --lineage performance_test.report!
+$ signet --lineage performance_test.report!
 performance_test.report! = true  bool  made by chamber:performance_test.report at …, stamp ok
   module performance_test.rs (unchanged)
   temperature <-
@@ -283,14 +283,14 @@ Problems are reported in the chain as `edited after it was stamped`, `replaced b
 
 ## Visualizing a system
 
-Run either tool in the system's working folder:
+In the system's working folder:
 
 ```sh
+signet wiring.sg --graph | dot -Tsvg -o system.svg
 python3 visualizer.py wiring.sg -o diagram.svg --theme light --large --label car=10:speed
-./signet wiring.sg --connections | python3 sys2dot.py | dot -Tsvg -o system.svg
 ```
 
-`visualizer.py` uses only the standard library. It uses `signet.py` from its own folder if present, or else the `signet` binary. A line is solid where its source Signal exists and faint where there is no data yet. `sys2dot.py` needs Graphviz (`sudo apt install graphviz`). In both, stepped feedback lines are dashed.
+`--graph` prints the system as a Graphviz graph without running it, and Graphviz's `dot` draws it (`sudo apt install graphviz`). `visualizer.py` draws it in the style of Starfire's System view, using only the standard library: it uses `signet.py` from its own folder if present, or else the `signet` command. A line is solid where its source Signal exists and faint where there is no data yet. In both, stepped feedback lines are dashed.
 
 ## Starfire
 
@@ -299,5 +299,3 @@ In Starfire, Signet code goes in each test point's **Signals** box, and a point'
 ## License
 
 MIT. The software is provided "as is", without warranty of any kind. See `LICENSE`.
-
-
