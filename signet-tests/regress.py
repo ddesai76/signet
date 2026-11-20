@@ -3,7 +3,7 @@
 # regress.py:     SIGNET REGRESSION: THE BOOK'S EXAMPLES, END TO END
 # AUTHOR:         DANIEL DESAI
 # UPDATED:        2026-11-17
-# VERSION:        0.1.2
+# VERSION:        0.1.3
 #
 # Runs the book's examples against a signet.py (and the tools beside it); blocks.json holds the book's code boxes.
 # python3 regress.py <repo dir> [<signet binary>]   (binary given: every run uses it instead of signet.py)
@@ -86,7 +86,8 @@ d = folder(116); rc, o, e = sh(d, 'python3 signet.py reentry.sg --check')
 check('ch17 reentry.sg wiring parses (modules not in the book)', 'line' in e and 'no module atmosphere' in e or rc == 0, o + e)
 
 # App E: connections -> sys2dot -> dot; visualizer.py
-d = folder(17, 18, 19, 20); shutil.copy(REL + '/sys2dot.py', d); shutil.copy(REL + '/visualizer.py', d)
+# sys2dot.py as the book prints it (block 128), plus the closing line the book omits (erratum, 2nd edition)
+d = folder(17, 18, 19, 20, extra=[('sys2dot.py', q(b[128]['text']) + '\nprint("}")\n')]); shutil.copy(REL + '/visualizer.py', d)
 rc, o, e = sh(d, 'python3 signet.py wiring.sg --connections | python3 sys2dot.py | dot -Tsvg -o system_1.svg')
 check('appE --connections | sys2dot.py | dot', rc == 0 and os.path.getsize(d + '/system_1.svg') > 500, o + e)
 sh(d, 'python3 signet.py wiring.sg --param volts=12 --param amps=0.3')
