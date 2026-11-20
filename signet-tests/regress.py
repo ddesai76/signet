@@ -3,7 +3,7 @@
 # regress.py:     SIGNET REGRESSION: THE BOOK'S EXAMPLES, END TO END
 # AUTHOR:         DANIEL DESAI
 # UPDATED:        2026-11-17
-# VERSION:        0.1.3
+# VERSION:        0.1.5
 #
 # Runs the book's examples against a signet.py (and the tools beside it); blocks.json holds the book's code boxes.
 # python3 regress.py <repo dir> [<signet binary>]   (binary given: every run uses it instead of signet.py)
@@ -222,10 +222,26 @@ else:
 pp = os.path.join(REL, 'pyproject.toml')
 if os.path.exists(pp):
     ver = open(os.path.join(REL, 'VERSION'), encoding='utf-8').read().strip()
-    m = re.fullmatch(r'26\.b\.0\.1\.(\d+)', ver)
+    m = re.fullmatch(r'26\.b\.0\.1\.(\d+)(?:\.([1-9]))?', ver)               # 0.1.N is bN0, 0.1.N.M is b(N*10+M)
     got = re.search(r'^version = "([^"]+)"', open(pp, encoding='utf-8').read(), re.M)
-    check(f'pyproject.toml version matches VERSION {ver}', bool(m and got) and got.group(1) == f'26.0b{int(m.group(1)) * 10}',
+    want = f'26.0b{int(m.group(1)) * 10 + int(m.group(2) or 0)}' if m else None
+    check(f'pyproject.toml version matches VERSION {ver}', bool(m and got) and got.group(1) == want,
           got.group(1) if got else 'no version line')
+
+# ======== 26.b.0.1.7.5 additions: not in the book ========
+# --graph is what the book's sys2dot.py (with its closing line) makes of --connections
+book_dot = q(b[128]['text']) + '\nprint("}")\n'
+for blocks, wiring, args in (((17, 18, 19, 20), 'wiring.sg', ''), ((99, 100, 101), 'cruise.sg', ' --param v0=25')):
+    d = folder(*blocks, extra=[('sys2dot.py', book_dot)])
+    rc1, o1, e1 = sh(d, f'python3 signet.py {wiring}{args} --connections | python3 sys2dot.py')
+    rc2, o2, e2 = sh(d, f'python3 signet.py {wiring}{args} --graph')
+    check(f'0.1.7.5 --graph on {wiring} matches sys2dot.py', rc1 == 0 and rc2 == 0 and o1 == o2 and o2.startswith('digraph'), o2 + e1 + e2)
+    if shutil.which('dot'):
+        rc, o, e = sh(d, f'python3 signet.py {wiring}{args} --graph | dot -Tsvg -o g.svg')
+        check(f'0.1.7.5 --graph on {wiring} | dot', rc == 0 and os.path.getsize(d + '/g.svg') > 500, e)
+d = folder(extra=[('m.py', '# signet: in text::t\n'), ('w.sg', 'connect(\'say "hi"\', m.t)\nrun(m)\n')])
+rc, o, e = sh(d, 'python3 signet.py w.sg --graph' + (' | dot -Tsvg -o q.svg' if shutil.which('dot') else ''))
+check('0.1.7.5 --graph escapes a quote in a constant', rc == 0, o + e)
 
 ok = sum(1 for r in results if r[1]); bad = [r for r in results if r[1] is False]; skip = [r for r in results if r[1] is None]
 print(f'\n{ok} passed, {len(bad)} failed, {len(skip)} skipped')
